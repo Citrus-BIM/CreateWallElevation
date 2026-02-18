@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CreateWallElevation
 {
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
-    class CreateWallElevationCommand : IExternalCommand
+    public class CreateWallElevationCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {

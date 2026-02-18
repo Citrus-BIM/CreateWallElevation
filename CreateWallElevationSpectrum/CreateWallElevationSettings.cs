@@ -14,7 +14,7 @@ namespace CreateWallElevation
         public string SelectedBuildByName { get; set; } = "rbt_ByRoom";
         public string SelectedUseToBuildName { get; set; } = "rbt_Section";
 
-        public string Indent { get; set; } = "0";
+        public string Indent { get; set; } = "500";
         public string IndentUp { get; set; } = "0";
         public string IndentDown { get; set; } = "0";
         public string ProjectionDepth { get; set; } = "0";

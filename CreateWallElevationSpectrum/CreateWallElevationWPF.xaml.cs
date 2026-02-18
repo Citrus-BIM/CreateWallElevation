@@ -1,6 +1,7 @@
 ﻿using Autodesk.Revit.DB;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -41,7 +42,7 @@ namespace CreateWallElevation
             Doc = doc ?? throw new ArgumentNullException(nameof(doc));
             _viewSheetList = viewSheetList ?? new List<ViewSheet>();
 
-            CreateWallElevationSettingsItem = new CreateWallElevationSettings().GetSettings();
+            CreateWallElevationSettingsItem = CreateWallElevationSettings.GetSettings();
 
             InitializeComponent();
 
@@ -50,6 +51,7 @@ namespace CreateWallElevation
             Loaded += CreateWallElevationWPF_Loaded;
         }
 
+        // 1) Переписанный CreateWallElevationWPF_Loaded целиком
         private void CreateWallElevationWPF_Loaded(object sender, RoutedEventArgs e)
         {
             if (_uiReady) return;
@@ -59,77 +61,68 @@ namespace CreateWallElevation
             if (comboBox_PlaceOnSheet != null)
                 comboBox_PlaceOnSheet.ItemsSource = _viewSheetList;
 
-            // Радио-кнопки из настроек
-            if (CreateWallElevationSettingsItem != null)
-            {
-                if (rbt_ByRoom != null)
-                    rbt_ByRoom.IsChecked = CreateWallElevationSettingsItem.SelectedBuildByName == "rbt_ByRoom";
-                if (rbt_ByWall != null && rbt_ByRoom != null)
-                    rbt_ByWall.IsChecked = !(rbt_ByRoom.IsChecked == true);
+            // Настройки (в "потолочной" схеме всегда non-null)
+            var s = CreateWallElevationSettingsItem ?? new CreateWallElevationSettings();
 
-                if (rbt_Section != null)
-                    rbt_Section.IsChecked = CreateWallElevationSettingsItem.SelectedUseToBuildName == "rbt_Section";
-                if (rbt_Facade != null && rbt_Section != null)
-                    rbt_Facade.IsChecked = !(rbt_Section.IsChecked == true);
+            // --- Радио-кнопки (пусто -> дефолт) ---
+            if (rbt_ByRoom != null && rbt_ByWall != null)
+            {
+                var byRoom = string.IsNullOrWhiteSpace(s.SelectedBuildByName) || s.SelectedBuildByName == "rbt_ByRoom";
+                rbt_ByRoom.IsChecked = byRoom;
+                rbt_ByWall.IsChecked = !byRoom;
             }
 
-            // Типы видов (Section/Elevation) — наполняем после выставления радио
+            if (rbt_Section != null && rbt_Facade != null)
+            {
+                var section = string.IsNullOrWhiteSpace(s.SelectedUseToBuildName) || s.SelectedUseToBuildName == "rbt_Section";
+                rbt_Section.IsChecked = section;
+                rbt_Facade.IsChecked = !section;
+            }
+
+            // --- Типы видов (Section/Elevation) — после радио ---
             RefreshViewFamilyTypes();
 
-            // Восстановить выбранный ViewFamilyType
-            if (CreateWallElevationSettingsItem != null && comboBox_SelectTypeSectionFacade != null && ViewFamilyTypeList.Count != 0)
+            // --- Восстановить выбранный ViewFamilyType ---
+            if (comboBox_SelectTypeSectionFacade != null && ViewFamilyTypeList.Count > 0)
             {
-                var savedVft = ViewFamilyTypeList.FirstOrDefault(vft => vft.Name == CreateWallElevationSettingsItem.SelectedViewFamilyTypeName);
-                comboBox_SelectTypeSectionFacade.SelectedItem = savedVft ?? comboBox_SelectTypeSectionFacade.Items[0];
+                var savedVft = ViewFamilyTypeList.FirstOrDefault(vft => vft.Name == s.SelectedViewFamilyTypeName);
+                comboBox_SelectTypeSectionFacade.SelectedItem = savedVft ?? ViewFamilyTypeList[0];
             }
-            else if (comboBox_SelectTypeSectionFacade != null && comboBox_SelectTypeSectionFacade.Items.Count > 0 && comboBox_SelectTypeSectionFacade.SelectedItem == null)
+            else if (comboBox_SelectTypeSectionFacade != null &&
+                     comboBox_SelectTypeSectionFacade.Items.Count > 0 &&
+                     comboBox_SelectTypeSectionFacade.SelectedItem == null)
             {
                 comboBox_SelectTypeSectionFacade.SelectedItem = comboBox_SelectTypeSectionFacade.Items[0];
             }
 
-            // Тексты полей
-            if (CreateWallElevationSettingsItem != null)
+            // --- Тексты полей (пусто -> дефолт) ---
+            if (textBox_Indent != null) textBox_Indent.Text = string.IsNullOrWhiteSpace(s.Indent) ? "0" : s.Indent;
+            if (textBox_IndentUp != null) textBox_IndentUp.Text = string.IsNullOrWhiteSpace(s.IndentUp) ? "0" : s.IndentUp;
+            if (textBox_IndentDown != null) textBox_IndentDown.Text = string.IsNullOrWhiteSpace(s.IndentDown) ? "0" : s.IndentDown;
+            if (textBox_ProjectionDepth != null) textBox_ProjectionDepth.Text = string.IsNullOrWhiteSpace(s.ProjectionDepth) ? "0" : s.ProjectionDepth;
+            if (textBox_CurveNumberOfSegments != null) textBox_CurveNumberOfSegments.Text = string.IsNullOrWhiteSpace(s.CurveNumberOfSegments) ? "5" : s.CurveNumberOfSegments;
+
+            if (textBox_MinSegmentLength != null)
+                textBox_MinSegmentLength.Text = string.IsNullOrWhiteSpace(s.MinSegmentLength) ? "1000" : s.MinSegmentLength;
+
+            // --- Лист (выбранный) ---
+            if (_viewSheetList.Count > 0 && comboBox_PlaceOnSheet != null)
             {
-                if (textBox_Indent != null) textBox_Indent.Text = CreateWallElevationSettingsItem.Indent;
-                if (textBox_IndentUp != null) textBox_IndentUp.Text = CreateWallElevationSettingsItem.IndentUp;
-                if (textBox_IndentDown != null) textBox_IndentDown.Text = CreateWallElevationSettingsItem.IndentDown;
-                if (textBox_ProjectionDepth != null) textBox_ProjectionDepth.Text = CreateWallElevationSettingsItem.ProjectionDepth;
-                if (textBox_CurveNumberOfSegments != null) textBox_CurveNumberOfSegments.Text = CreateWallElevationSettingsItem.CurveNumberOfSegments;
-
-                if (textBox_MinSegmentLength != null)
-                {
-                    textBox_MinSegmentLength.Text = string.IsNullOrWhiteSpace(CreateWallElevationSettingsItem.MinSegmentLength)
-                        ? "1000"
-                        : CreateWallElevationSettingsItem.MinSegmentLength;
-                }
-
-                // Лист (выбранный)
-                if (_viewSheetList.Count != 0 && comboBox_PlaceOnSheet != null)
-                {
-                    var savedSheet = _viewSheetList.FirstOrDefault(vs => vs.Name == CreateWallElevationSettingsItem.SelectedViewSheetName);
-                    comboBox_PlaceOnSheet.SelectedItem = savedSheet ?? comboBox_PlaceOnSheet.Items[0];
-                }
-
-                // Шаблон
-                if (checkBox_UseTemplate != null)
-                {
-                    checkBox_UseTemplate.IsChecked = CreateWallElevationSettingsItem.UseTemplate;
-                    RefreshTemplateList();
-
-                    if (checkBox_UseTemplate.IsChecked == true && comboBox_UseTemplate != null && ViewSectionTemplateList.Count != 0)
-                    {
-                        var savedTpl = ViewSectionTemplateList.FirstOrDefault(vs => vs.Name == CreateWallElevationSettingsItem.ViewSectionTemplateName);
-                        comboBox_UseTemplate.SelectedItem = savedTpl ?? comboBox_UseTemplate.Items[0];
-                    }
-                }
+                var savedSheet = _viewSheetList.FirstOrDefault(vs => vs.Name == s.SelectedViewSheetName);
+                comboBox_PlaceOnSheet.SelectedItem = savedSheet ?? _viewSheetList[0];
             }
-            else
-            {
-                if (_viewSheetList.Count != 0 && comboBox_PlaceOnSheet != null)
-                    comboBox_PlaceOnSheet.SelectedItem = comboBox_PlaceOnSheet.Items[0];
 
-                if (textBox_MinSegmentLength != null)
-                    textBox_MinSegmentLength.Text = "1000";
+            // --- Шаблон ---
+            if (checkBox_UseTemplate != null)
+            {
+                checkBox_UseTemplate.IsChecked = s.UseTemplate;
+                RefreshTemplateList();
+
+                if (checkBox_UseTemplate.IsChecked == true && comboBox_UseTemplate != null && ViewSectionTemplateList.Count > 0)
+                {
+                    var savedTpl = ViewSectionTemplateList.FirstOrDefault(vs => vs.Name == s.ViewSectionTemplateName);
+                    comboBox_UseTemplate.SelectedItem = savedTpl ?? ViewSectionTemplateList[0];
+                }
             }
 
             UpdateSimplifyUi();
@@ -264,10 +257,32 @@ namespace CreateWallElevation
             return rb != null ? rb.Name : fallbackName;
         }
 
+        private static double ParseMmOrZero(string text)
+        {
+            text = (text ?? "").Trim();
+
+            // 1) Текущая культура (обычно корректно для пользователя)
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out var v))
+                return v;
+
+            // 2) Fallback: нормализуем десятичный разделитель и парсим инвариантно
+            var normalized = text.Replace(',', '.');
+            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
+                return v;
+
+            return 0.0;
+        }
+
         // ---------------- settings ----------------
         private void SaveSettings()
         {
-            CreateWallElevationSettingsItem = new CreateWallElevationSettings();
+            CreateWallElevationSettingsItem = CreateWallElevationSettingsItem ?? new CreateWallElevationSettings();
+
+            string NormOrDefault(string text, string def)
+            {
+                var t = (text ?? "").Trim();
+                return string.IsNullOrWhiteSpace(t) ? def : t;
+            }
 
             // ViewFamilyType
             SelectedViewFamilyType = comboBox_SelectTypeSectionFacade != null
@@ -284,38 +299,12 @@ namespace CreateWallElevation
             SelectedUseToBuildName = GetCheckedRadioName(groupBox_UseToBuild, "rbt_Section");
             CreateWallElevationSettingsItem.SelectedUseToBuildName = SelectedUseToBuildName;
 
-            // ---------- локальные хелперы (старая версия, без CultureInfo в usings) ----------
-            double TryParseMmOrZero(string text)
-            {
-                text = (text ?? "").Trim();
-
-                double v;
-                // 1) текущая культура
-                if (double.TryParse(text, out v))
-                    return v;
-
-                // 2) fallback: нормализуем разделитель
-                var normalized = text.Replace(',', '.');
-                if (double.TryParse(normalized, System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out v))
-                    return v;
-
-                return 0.0;
-            }
-
-            string NormOrDefault(string text, string def)
-            {
-                var t = (text ?? "").Trim();
-                return string.IsNullOrWhiteSpace(t) ? def : t;
-            }
-            // ------------------------------------------------------------------------------
-
-            // Парсинг мм для расчётов
-            var indentMm = TryParseMmOrZero(textBox_Indent != null ? textBox_Indent.Text : null);
-            var indentUpMm = TryParseMmOrZero(textBox_IndentUp != null ? textBox_IndentUp.Text : null);
-            var indentDownMm = TryParseMmOrZero(textBox_IndentDown != null ? textBox_IndentDown.Text : null);
-            var projMm = TryParseMmOrZero(textBox_ProjectionDepth != null ? textBox_ProjectionDepth.Text : null);
-            var minSegMm = TryParseMmOrZero(textBox_MinSegmentLength != null ? textBox_MinSegmentLength.Text : null);
+            // Парсинг мм (культура/запятая/точка) — для расчётов
+            var indentMm = ParseMmOrZero(textBox_Indent != null ? textBox_Indent.Text : null);
+            var indentUpMm = ParseMmOrZero(textBox_IndentUp != null ? textBox_IndentUp.Text : null);
+            var indentDownMm = ParseMmOrZero(textBox_IndentDown != null ? textBox_IndentDown.Text : null);
+            var projMm = ParseMmOrZero(textBox_ProjectionDepth != null ? textBox_ProjectionDepth.Text : null);
+            var minSegMm = ParseMmOrZero(textBox_MinSegmentLength != null ? textBox_MinSegmentLength.Text : null);
 
 #if R2019 || R2020 || R2021
             Indent = UnitUtils.ConvertToInternalUnits(indentMm, DisplayUnitType.DUT_MILLIMETERS);
@@ -331,7 +320,7 @@ namespace CreateWallElevation
             MinSegmentLength = UnitUtils.ConvertToInternalUnits(minSegMm, UnitTypeId.Millimeters);
 #endif
 
-            // Сохраняем строки (пусто -> дефолт)
+            // Сохраняем строки (trim + пусто -> дефолт) — чтобы XML был консистентный
             CreateWallElevationSettingsItem.Indent = NormOrDefault(textBox_Indent != null ? textBox_Indent.Text : null, "0");
             CreateWallElevationSettingsItem.IndentUp = NormOrDefault(textBox_IndentUp != null ? textBox_IndentUp.Text : null, "0");
             CreateWallElevationSettingsItem.IndentDown = NormOrDefault(textBox_IndentDown != null ? textBox_IndentDown.Text : null, "0");
@@ -342,20 +331,19 @@ namespace CreateWallElevation
             UseTemplate = (checkBox_UseTemplate != null && checkBox_UseTemplate.IsChecked == true);
             CreateWallElevationSettingsItem.UseTemplate = UseTemplate;
 
-            if (UseTemplate && comboBox_UseTemplate != null)
+            if (UseTemplate)
             {
-                ViewSectionTemplate = comboBox_UseTemplate.SelectedItem as ViewSection;
+                ViewSectionTemplate = comboBox_UseTemplate != null ? comboBox_UseTemplate.SelectedItem as ViewSection : null;
                 CreateWallElevationSettingsItem.ViewSectionTemplateName = ViewSectionTemplate != null ? ViewSectionTemplate.Name : null;
             }
             else
             {
-                // не таскаем старое имя шаблона, если галка снята
                 CreateWallElevationSettingsItem.ViewSectionTemplateName = null;
             }
 
             // Curve segments (int + строка с дефолтом)
             int.TryParse((textBox_CurveNumberOfSegments != null ? textBox_CurveNumberOfSegments.Text : null),
-                System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out CurveNumberOfSegments);
+                NumberStyles.Integer, CultureInfo.InvariantCulture, out CurveNumberOfSegments);
 
             CreateWallElevationSettingsItem.CurveNumberOfSegments =
                 NormOrDefault(textBox_CurveNumberOfSegments != null ? textBox_CurveNumberOfSegments.Text : null, "5");

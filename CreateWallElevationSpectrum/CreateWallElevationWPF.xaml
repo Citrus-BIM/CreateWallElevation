@@ -1,0 +1,390 @@
+﻿<Window x:Class="CreateWallElevation.CreateWallElevationWPF"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:CreateWallElevation"
+        mc:Ignorable="d"
+        Title="Развертки стен"
+        Height="540" Width="680"
+        MinHeight="540" MinWidth="680"
+        MaxHeight="540" 
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="NoResize"
+        Icon="Resources/citrus.ico"
+        WindowStartupLocation="CenterScreen"
+        KeyDown="CreateWallElevationWPF_KeyDown"
+
+        FontFamily="{DynamicResource BaseFont}"
+        FontSize="{DynamicResource FontSizeBase}"
+        Foreground="{DynamicResource TextBrush}"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        TextOptions.TextHintingMode="Fixed"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Language="ru-RU">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/CreateWallElevation;component/CitrusTheme/CitrusTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="10,0,10,10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- =======================
+             ВЕРХ: 2 КОЛОНКИ (низ выровнен)
+             ======================= -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="1.2*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ЛЕВО: делаем Grid (а не StackPanel), чтобы тянуть до низа -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- BuildBy -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- UseToBuild -->
+                    <RowDefinition Height="*"/>
+                    <!-- View (дотягиваем вниз) -->
+                </Grid.RowDefinitions>
+
+                <!-- Строить по -->
+                <GroupBox x:Name="groupBox_BuildBy"
+                          Grid.Row="0"
+                          Header="Строить по:"
+                          Margin="0,0,0,10">
+                    <Grid Margin="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <RadioButton x:Name="rbt_ByRoom"
+                                     Grid.Column="0"
+                                     Content="Помещению"
+                                     IsChecked="True"
+                                     VerticalContentAlignment="Center"
+                                     Height="22"
+                                     Margin="10,0,0,0"
+                                     Checked="BuildByCheckedChanged"/>
+
+                        <RadioButton x:Name="rbt_ByWall"
+                                     Grid.Column="1"
+                                     Content="Стене"
+                                     VerticalContentAlignment="Center"
+                                     Height="22"
+                                     HorizontalAlignment="Right"
+                                     Margin="0,0,10,0"
+                                     Checked="BuildByCheckedChanged"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Использовать для построения -->
+                <GroupBox x:Name="groupBox_UseToBuild"
+                          Grid.Row="1"
+                          Header="Использовать для построения:"
+                          Margin="0,0,0,10">
+                    <Grid Margin="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <RadioButton x:Name="rbt_Section"
+                                     Grid.Column="0"
+                                     Content="Разрез"
+                                     IsChecked="True"
+                                     VerticalContentAlignment="Center"
+                                     Height="22"
+                                     Margin="10,0,0,0"
+                                     Checked="UseToBuildCheckedChanged"/>
+
+                        <RadioButton x:Name="rbt_Facade"
+                                     Grid.Column="1"
+                                     Content="Фасад"
+                                     VerticalContentAlignment="Center"
+                                     Height="22"
+                                     HorizontalAlignment="Right"
+                                     Margin="0,0,10,0"
+                                     Checked="UseToBuildCheckedChanged"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Тип вида + шаблон (тянем до низа левой колонки) -->
+                <GroupBox Grid.Row="2"
+                          Header="Вид"
+                          VerticalAlignment="Stretch">
+                    <Grid Margin="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <!-- распорка -->
+                        </Grid.RowDefinitions>
+
+                        <Label x:Name="label_SelectTypeSectionFacade"
+                               Grid.Row="0"
+                               Content="Выберите тип Разреза/Фасада"
+                               VerticalContentAlignment="Center"
+                               Margin="4,0,4,6"/>
+
+                        <ComboBox x:Name="comboBox_SelectTypeSectionFacade"
+                                  Grid.Row="1"
+                                  Height="32"
+                                  VerticalContentAlignment="Center"
+                                  Margin="0,0,0,8"/>
+
+                        <CheckBox x:Name="checkBox_UseTemplate"
+                                  Grid.Row="2"
+                                  Content="Использовать шаблон:"
+                                  Height="22"
+                                  VerticalContentAlignment="Center"
+                                  Margin="2,0,0,6"
+                                  Checked="checkBox_UseTemplate_Checked"
+                                  Unchecked="checkBox_UseTemplate_Checked"/>
+
+                        <ComboBox x:Name="comboBox_UseTemplate"
+                                  Grid.Row="3"
+                                  Height="32"
+                                  VerticalContentAlignment="Center"
+                                  IsEnabled="False"/>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+
+            <!-- ПРАВО: параметры — растягиваем на высоту левого Grid (RowSpan implicit через Stretch) -->
+            <GroupBox Grid.Column="2"
+                      Header="Параметры"
+                      VerticalAlignment="Stretch">
+                <Grid Margin="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <!-- распорка -->
+                    </Grid.RowDefinitions>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="70"/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Отступ от грани -->
+                    <Label x:Name="label_Indent"
+                           Grid.Row="0" Grid.Column="0"
+                           Content="Отступ от грани:"
+                           VerticalContentAlignment="Center"
+                           Margin="4,0,8,6"/>
+                    <TextBox x:Name="textBox_Indent"
+                             Grid.Row="0" Grid.Column="1"
+                             Width="70" Height="32"
+                             Text="0"
+                             Padding="10,0,10,0"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,6"/>
+                    <Label x:Name="label_IndentMM"
+                           Grid.Row="0" Grid.Column="2"
+                           Content="мм"
+                           VerticalContentAlignment="Center"
+                           Margin="6,0,0,6"/>
+
+                    <!-- Отступ сверху -->
+                    <Label x:Name="label_IndentUp"
+                           Grid.Row="1" Grid.Column="0"
+                           Content="Отступ сверху:"
+                           VerticalContentAlignment="Center"
+                           Margin="4,0,8,6"/>
+                    <TextBox x:Name="textBox_IndentUp"
+                             Grid.Row="1" Grid.Column="1"
+                             Width="70" Height="32"
+                             Text="0"
+                             Padding="10,0,10,0"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,6"/>
+                    <Label x:Name="label_IndentUpMM"
+                           Grid.Row="1" Grid.Column="2"
+                           Content="мм"
+                           VerticalContentAlignment="Center"
+                           Margin="6,0,0,6"/>
+
+                    <!-- Отступ снизу -->
+                    <Label x:Name="label_IndentDown"
+                           Grid.Row="2" Grid.Column="0"
+                           Content="Отступ снизу:"
+                           VerticalContentAlignment="Center"
+                           Margin="4,0,8,6"/>
+                    <TextBox x:Name="textBox_IndentDown"
+                             Grid.Row="2" Grid.Column="1"
+                             Width="70" Height="32"
+                             Text="0"
+                             Padding="10,0,10,0"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,6"/>
+                    <Label x:Name="label_IndentDownMM"
+                           Grid.Row="2" Grid.Column="2"
+                           Content="мм"
+                           VerticalContentAlignment="Center"
+                           Margin="6,0,0,6"/>
+
+                    <!-- Глубина проекции -->
+                    <Label x:Name="label_ProjectionDepth"
+                           Grid.Row="3" Grid.Column="0"
+                           Content="Глубина проекции:"
+                           VerticalContentAlignment="Center"
+                           Margin="4,0,8,6"/>
+                    <TextBox x:Name="textBox_ProjectionDepth"
+                             Grid.Row="3" Grid.Column="1"
+                             Width="70" Height="32"
+                             Text="500"
+                             Padding="10,0,10,0"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,6"/>
+                    <Label x:Name="label_ProjectionDepthMM"
+                           Grid.Row="3" Grid.Column="2"
+                           Content="мм"
+                           VerticalContentAlignment="Center"
+                           Margin="6,0,0,6"/>
+
+                    <!-- Сегменты для кривой -->
+                    <Label x:Name="label_CurveNumberOfSegments"
+                           Grid.Row="4" Grid.Column="0"
+                           Content="Число сегментов для кривой:"
+                           VerticalContentAlignment="Center"
+                           Margin="4,0,8,6"/>
+                    <TextBox x:Name="textBox_CurveNumberOfSegments"
+                             Grid.Row="4" Grid.Column="1"
+                             Width="70" Height="32"
+                             Text="10"
+                             Padding="10,0,10,0"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,6"/>
+                    <Label x:Name="label_CurveNumberOfSegmentsCNT"
+                           Grid.Row="4" Grid.Column="2"
+                           Content="шт"
+                           VerticalContentAlignment="Center"
+                           Margin="6,0,0,6"/>
+
+                    <!-- Упрощение границы -->
+                    <GroupBox x:Name="groupBox_Simplify"
+                              Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                              Header="Упрощение границы"
+                              Margin="0,6,0,0">
+                        <Grid Margin="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="40"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Label Content="Мин. длина сегмента:"
+                                   VerticalContentAlignment="Center"
+                                   Margin="4,0,8,0"/>
+                            <TextBox x:Name="textBox_MinSegmentLength"
+                                     Grid.Column="1"
+                                     Width="70" Height="32"
+                                     Text="1000"
+                                     Padding="10,0,10,0"
+                                     HorizontalContentAlignment="Center"
+                                     VerticalContentAlignment="Center"/>
+                            <Label Grid.Column="2"
+                                   Content="мм"
+                                   VerticalContentAlignment="Center"
+                                   Margin="6,0,0,0"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- распорка для выравнивания низа -->
+                    <Border Grid.Row="6" Grid.ColumnSpan="3" />
+                </Grid>
+            </GroupBox>
+
+        </Grid>
+
+        <!-- =======================
+         НИЗ: лист + кнопки (лист остается снизу)
+         ======================= -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Label -->
+                <RowDefinition Height="Auto"/>
+                <!-- ComboBox -->
+                <RowDefinition Height="Auto"/>
+                <!-- Buttons -->
+            </Grid.RowDefinitions>
+
+            <Label x:Name="label_PlaceOnSheet"
+               Grid.Row="0"
+               Content="Разместить на лист:"
+               VerticalContentAlignment="Center"
+               Margin="4,0,0,6"/>
+
+            <ComboBox x:Name="comboBox_PlaceOnSheet"
+              Grid.Row="1"
+              Height="32"
+              VerticalContentAlignment="Center"
+              Margin="0,0,0,25">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0} - {1}">
+                                    <Binding Path="SheetNumber"/>
+                                    <Binding Path="Name"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom">
+                <Button x:Name="btn_Ok"
+                Content="Ок"
+                Width="100"
+                Height="30"
+                Padding="10,0,10,0"
+                IsDefault="True"
+                Click="btn_Ok_Click"
+                Margin="0,0,5,0"/>
+
+                <Button x:Name="btn_Cancel"
+                Content="Отмена"
+                Width="100"
+                Height="30"
+                Padding="10,0,10,0"
+                Margin="5,0,0,0"
+                IsCancel="True"
+                Style="{StaticResource ButtonOutline}"
+                Click="btn_Cancel_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

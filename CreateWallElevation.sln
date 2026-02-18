@@ -1,9 +1,10 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32002.261
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateWallElevation", "CreateWallElevation\CreateWallElevation.csproj", "{4EEDC0D2-CDE2-48BD-B407-B4D79DF76079}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateWallElevationSpectrum", "CreateWallElevationSpectrum\CreateWallElevationSpectrum.csproj", "{CDC54D04-9FCC-425C-B271-3176BF867AE9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +28,19 @@ Global
 		{4EEDC0D2-CDE2-48BD-B407-B4D79DF76079}.R2023|Any CPU.Build.0 = R2023|Any CPU
 		{4EEDC0D2-CDE2-48BD-B407-B4D79DF76079}.R2024|Any CPU.ActiveCfg = R2024|Any CPU
 		{4EEDC0D2-CDE2-48BD-B407-B4D79DF76079}.R2024|Any CPU.Build.0 = R2024|Any CPU
+
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2019|Any CPU.ActiveCfg = R2019|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2019|Any CPU.Build.0 = R2019|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2020|Any CPU.ActiveCfg = R2020|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2020|Any CPU.Build.0 = R2020|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2021|Any CPU.ActiveCfg = R2021|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2021|Any CPU.Build.0 = R2021|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2022|Any CPU.ActiveCfg = R2022|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2022|Any CPU.Build.0 = R2022|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2023|Any CPU.ActiveCfg = R2023|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2023|Any CPU.Build.0 = R2023|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2024|Any CPU.ActiveCfg = R2024|Any CPU
+		{CDC54D04-9FCC-425C-B271-3176BF867AE9}.R2024|Any CPU.Build.0 = R2024|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

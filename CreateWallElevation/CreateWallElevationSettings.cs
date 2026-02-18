@@ -6,18 +6,22 @@ namespace CreateWallElevation
     public class CreateWallElevationSettings
     {
         public string SelectedViewFamilyTypeName { get; set; }
-        public bool UseTemplate { get; set; }
+
+        public bool UseTemplate { get; set; } = false;
         public string ViewSectionTemplateName { get; set; }
-        public string SelectedBuildByName { get; set; }
-        public string SelectedUseToBuildName { get; set; }
-        public string Indent { get; set; }
-        public string IndentUp { get; set; }
-        public string IndentDown { get; set; }
-        public string ProjectionDepth { get; set; }
-        public string CurveNumberOfSegments { get; set; }
+
+        public string SelectedBuildByName { get; set; } = "rbt_ByRoom";
+        public string SelectedUseToBuildName { get; set; } = "rbt_Section";
+
+        public string Indent { get; set; } = "0";
+        public string IndentUp { get; set; } = "0";
+        public string IndentDown { get; set; } = "0";
+        public string ProjectionDepth { get; set; } = "0";
+        public string CurveNumberOfSegments { get; set; } = "5";
         public string SelectedViewSheetName { get; set; }
+
         public string MinSegmentLength { get; set; } = "1000";
- 
+
         public CreateWallElevationSettings GetSettings()
         {
             CreateWallElevationSettings createWallElevationSettings = null;

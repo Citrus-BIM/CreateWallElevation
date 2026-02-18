@@ -12,12 +12,10 @@ using System.Threading.Tasks;
 namespace CreateWallElevation
 {
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
-    public class CreateWallElevationCommand : IExternalCommand
+    class CreateWallElevationCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            try { _ = GetPluginStartInfo(); } catch { }
-
             UIDocument uiDoc = commandData.Application.ActiveUIDocument;
             Document doc = uiDoc.Document;
             Selection sel = uiDoc.Selection;
@@ -956,6 +954,11 @@ namespace CreateWallElevation
             return n;
         }
 
+        /// <summary>
+        /// Вертикальные границы помещения по параметрам (а не bbox).
+        /// baseZ = Level.Elevation + ROOM_LOWER_OFFSET
+        /// topZ  = baseZ + ROOM_HEIGHT (fallback: UnboundedHeight, fallback: bbox)
+        /// </summary>
         private static void GetRoomVerticalExtents(Document doc, Room room, out double baseZ, out double topZ)
         {
             baseZ = 0;
@@ -1001,32 +1004,6 @@ namespace CreateWallElevation
             }
 
             topZ = baseZ + h;
-        }
-
-        private static async Task GetPluginStartInfo()
-        {
-            Assembly thisAssembly = Assembly.GetExecutingAssembly();
-            string assemblyName = "CreateWallElevation";
-            string assemblyNameRus = "Развертки стен";
-            string assemblyFolderPath = Path.GetDirectoryName(thisAssembly.Location);
-
-            int lastBackslashIndex = assemblyFolderPath.LastIndexOf("\\");
-            string dllPath = assemblyFolderPath.Substring(0, lastBackslashIndex + 1) + "PluginInfoCollector\\PluginInfoCollector.dll";
-
-            Assembly assembly = Assembly.LoadFrom(dllPath);
-            Type type = assembly.GetType("PluginInfoCollector.InfoCollector");
-
-            if (type != null)
-            {
-                object instance = Activator.CreateInstance(type);
-                var method = type.GetMethod("CollectPluginUsageAsync");
-
-                if (method != null)
-                {
-                    Task task = (Task)method.Invoke(instance, new object[] { assemblyName, assemblyNameRus });
-                    await task;
-                }
-            }
         }
     }
 }

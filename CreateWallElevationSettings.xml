@@ -1,14 +1,15 @@
 <?xml version="1.0"?>
 <CreateWallElevationSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <SelectedViewFamilyTypeName>Разрез_Развертки</SelectedViewFamilyTypeName>
+  <SelectedViewFamilyTypeName>Разрез_Оформленный</SelectedViewFamilyTypeName>
   <UseTemplate>true</UseTemplate>
-  <ViewSectionTemplateName>АР_РД_Развертки</ViewSectionTemplateName>
+  <ViewSectionTemplateName>АР_П_Фасад</ViewSectionTemplateName>
   <SelectedBuildByName>rbt_ByRoom</SelectedBuildByName>
   <SelectedUseToBuildName>rbt_Section</SelectedUseToBuildName>
-  <Indent>0</Indent>
+  <Indent>300</Indent>
   <IndentUp>0</IndentUp>
   <IndentDown>0</IndentDown>
-  <ProjectionDepth>500</ProjectionDepth>
+  <ProjectionDepth>800</ProjectionDepth>
   <CurveNumberOfSegments>5</CurveNumberOfSegments>
-  <SelectedViewSheetName>Отделка копия 1</SelectedViewSheetName>
+  <SelectedViewSheetName>Развертки</SelectedViewSheetName>
+  <MinSegmentLength>500</MinSegmentLength>
 </CreateWallElevationSettings>

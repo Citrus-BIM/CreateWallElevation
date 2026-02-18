@@ -16,7 +16,8 @@ namespace CreateWallElevation
         public string ProjectionDepth { get; set; }
         public string CurveNumberOfSegments { get; set; }
         public string SelectedViewSheetName { get; set; }
-
+        public string MinSegmentLength { get; set; } = "1000";
+ 
         public CreateWallElevationSettings GetSettings()
         {
             CreateWallElevationSettings createWallElevationSettings = null;

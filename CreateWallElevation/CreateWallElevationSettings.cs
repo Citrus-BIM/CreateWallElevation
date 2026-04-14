@@ -20,6 +20,9 @@ namespace CreateWallElevation
         public string CurveNumberOfSegments { get; set; } = "5";
         public string SelectedViewSheetName { get; set; }
 
+        /// <summary>Номер листа для однозначного восстановления выбора (совместимость: старые XML без поля).</summary>
+        public string SelectedViewSheetNumber { get; set; }
+
         public string MinSegmentLength { get; set; } = "1000";
 
         public CreateWallElevationSettings GetSettings()

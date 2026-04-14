@@ -916,7 +916,11 @@ namespace CreateWallElevation
             {
                 Element e = doc.GetElement(roomId);
                 if (e is Room && e.Category != null &&
+#if REVIT_2025 || REVIT_2026 || REVIT_2027
+                    e.Category.Id.Value == (long)(int)BuiltInCategory.OST_Rooms)
+#else
                     e.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_Rooms))
+#endif
                 {
                     tempRoomsList.Add(e as Room);
                 }

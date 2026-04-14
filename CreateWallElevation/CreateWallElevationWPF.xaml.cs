@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Grid = System.Windows.Controls.Grid;
 
@@ -106,7 +107,17 @@ namespace CreateWallElevation
                 // Лист (выбранный)
                 if (_viewSheetList.Count != 0 && comboBox_PlaceOnSheet != null)
                 {
-                    var savedSheet = _viewSheetList.FirstOrDefault(vs => vs.Name == CreateWallElevationSettingsItem.SelectedViewSheetName);
+                    ViewSheet savedSheet = null;
+                    if (!string.IsNullOrWhiteSpace(CreateWallElevationSettingsItem.SelectedViewSheetNumber))
+                    {
+                        savedSheet = _viewSheetList.FirstOrDefault(vs =>
+                            vs.SheetNumber == CreateWallElevationSettingsItem.SelectedViewSheetNumber);
+                    }
+                    if (savedSheet == null && !string.IsNullOrWhiteSpace(CreateWallElevationSettingsItem.SelectedViewSheetName))
+                    {
+                        savedSheet = _viewSheetList.FirstOrDefault(vs =>
+                            vs.Name == CreateWallElevationSettingsItem.SelectedViewSheetName);
+                    }
                     comboBox_PlaceOnSheet.SelectedItem = savedSheet ?? comboBox_PlaceOnSheet.Items[0];
                 }
 
@@ -152,6 +163,9 @@ namespace CreateWallElevation
 
         private void CreateWallElevationWPF_KeyDown(object sender, KeyEventArgs e)
         {
+            if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is ComboBox)
+                return;
+
             if (e.Key == Key.Enter || e.Key == Key.Space)
             {
                 SaveSettings();
@@ -362,6 +376,7 @@ namespace CreateWallElevation
 
             // Sheet
             SelectedViewSheet = comboBox_PlaceOnSheet != null ? comboBox_PlaceOnSheet.SelectedItem as ViewSheet : null;
+            CreateWallElevationSettingsItem.SelectedViewSheetNumber = SelectedViewSheet != null ? SelectedViewSheet.SheetNumber : null;
             CreateWallElevationSettingsItem.SelectedViewSheetName = SelectedViewSheet != null ? SelectedViewSheet.Name : null;
 
             // Persist

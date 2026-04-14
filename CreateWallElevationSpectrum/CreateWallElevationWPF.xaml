@@ -18,6 +18,7 @@
         FontFamily="{DynamicResource BaseFont}"
         FontSize="{DynamicResource FontSizeBase}"
         Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource PageBgBrush}"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         TextOptions.TextHintingMode="Fixed"
@@ -28,7 +29,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/CreateWallElevation;component/CitrusTheme/CitrusTheme.xaml"/>
+                <ResourceDictionary Source="CitrusTheme/CitrusTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>

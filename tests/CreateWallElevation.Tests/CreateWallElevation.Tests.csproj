@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Shared/Geometry2D.cs" Link="Geometry2D.cs" />
+    <Compile Include="../../Shared/SettingsStore.cs" Link="SettingsStore.cs" />
+    <Compile Include="../../Shared/InputValues.cs" Link="InputValues.cs" />
+  </ItemGroup>
+</Project>

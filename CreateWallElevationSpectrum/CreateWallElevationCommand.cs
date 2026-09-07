@@ -16,6 +16,8 @@ namespace CreateWallElevation
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
+            try { _ = GetPluginStartInfo(); } catch { }
+
             UIDocument uiDoc = commandData.Application.ActiveUIDocument;
             Document doc = uiDoc.Document;
             Selection sel = uiDoc.Selection;
@@ -1008,6 +1010,61 @@ namespace CreateWallElevation
             }
 
             topZ = baseZ + h;
+        }
+
+        private static string ReadPluginTitleFromData(string dataFileName)
+        {
+            try
+            {
+                string folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string path = Path.Combine(folder, "data", dataFileName);
+                if (!File.Exists(path))
+                    return null;
+                foreach (string raw in File.ReadLines(path))
+                {
+                    if (string.IsNullOrWhiteSpace(raw))
+                        return null;
+                    string line = raw.Trim();
+                    line = line.Replace("\\n", " ");
+                    line = line.Replace("\r", " ").Replace("\n", " ");
+                    while (line.Contains("  "))
+                        line = line.Replace("  ", " ");
+                    return line.Trim();
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static async Task GetPluginStartInfo()
+        {
+            Assembly thisAssembly = Assembly.GetExecutingAssembly();
+            string assemblyName = "CreateWallElevation";
+            string assemblyNameRus = ReadPluginTitleFromData("CreateWallElevationCommand.txt");
+            if (string.IsNullOrWhiteSpace(assemblyNameRus))
+                return;
+
+            string assemblyFolderPath = Path.GetDirectoryName(thisAssembly.Location);
+
+            int lastBackslashIndex = assemblyFolderPath.LastIndexOf("\\");
+            string dllPath = assemblyFolderPath.Substring(0, lastBackslashIndex + 1) + "PluginInfoCollector\\PluginInfoCollector.dll";
+
+            Assembly assembly = Assembly.LoadFrom(dllPath);
+            Type type = assembly.GetType("PluginInfoCollector.InfoCollector");
+
+            if (type != null)
+            {
+                object instance = Activator.CreateInstance(type);
+                var method = type.GetMethod("CollectPluginUsageAsync");
+                if (method != null)
+                {
+                    Task task = (Task)method.Invoke(instance, new object[] { assemblyName, assemblyNameRus });
+                    await task;
+                }
+            }
         }
     }
 }

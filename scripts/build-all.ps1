@@ -4,8 +4,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$outputRoot = Join-Path $projectRoot 'bin'
-New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+$diagnosticsRoot = Join-Path $projectRoot 'artifacts/build'
+New-Item -ItemType Directory -Path $diagnosticsRoot -Force | Out-Null
 $manifest = @()
 Push-Location $projectRoot
 try {
@@ -14,38 +14,26 @@ try {
     foreach ($year in $Years) {
         if ($year -lt 2019 -or $year -gt 2026) { throw "Unsupported Revit year: $year" }
         $config = "R$year"
-        $logPath = Join-Path $outputRoot "build-$config.log"
-        & dotnet build CreateWallElevation.sln -c $config --no-incremental --nologo -v:minimal 2>&1 |
+        $logPath = Join-Path $diagnosticsRoot "build-$config.log"
+        # Keep native project OutputPath. Do not create a combined bin or copy assemblies elsewhere.
+        & dotnet build CreateWallElevation.sln -c $config --no-incremental --nologo -v:minimal -p:DebugSymbols=false -p:DebugType=None 2>&1 |
             Tee-Object -FilePath $logPath
         if ($LASTEXITCODE -ne 0) { throw "Build failed: $config. See $logPath" }
         foreach ($variant in @('CreateWallElevation', 'CreateWallElevationSpectrum')) {
-            $source = Join-Path $projectRoot "$variant\bin\$config"
-            $destination = Join-Path $outputRoot "$config\$variant"
-            New-Item -ItemType Directory -Path $destination -Force | Out-Null
-            # Copy only this plugin's output. RevitAPI DLLs must never be deployed with the plugin.
-            foreach ($name in @('CreateWallElevation.dll', 'CreateWallElevation.pdb', 'CreateWallElevation.dll.config', 'CreateWallElevation.deps.json')) {
-                $file = Join-Path $source $name
-                if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file -Destination $destination -Force }
-            }
-            $dataSource = Join-Path $projectRoot 'data'
-            if (Test-Path -LiteralPath $dataSource) {
-                $dataDestination = Join-Path $destination 'data'
-                New-Item -ItemType Directory -Path $dataDestination -Force | Out-Null
-                Get-ChildItem -LiteralPath $dataSource -File | Copy-Item -Destination $dataDestination -Force
-            }
-            $assembly = Join-Path $destination 'CreateWallElevation.dll'
+            $relativeAssembly = "$variant/bin/$config/CreateWallElevation.dll"
+            $assembly = Join-Path $projectRoot $relativeAssembly
             if (!(Test-Path -LiteralPath $assembly)) { throw "Missing output: $assembly" }
             $manifest += [pscustomobject]@{
                 Revit = $year
                 Variant = $variant
                 Commit = $commit
-                File = "$config/$variant/CreateWallElevation.dll"
+                File = $relativeAssembly
                 SHA256 = (Get-FileHash -LiteralPath $assembly -Algorithm SHA256).Hash
                 BuiltUtc = (Get-Date).ToUniversalTime().ToString('o')
             }
         }
     }
-    $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $outputRoot 'build-manifest.json') -Encoding UTF8
-    Write-Output "All requested builds completed: $outputRoot"
+    $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $diagnosticsRoot 'build-manifest.json') -Encoding UTF8
+    Write-Output "Builds completed in CreateWallElevation/bin and CreateWallElevationSpectrum/bin."
 }
 finally { Pop-Location }

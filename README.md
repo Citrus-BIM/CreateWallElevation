@@ -12,7 +12,7 @@
 dotnet build CreateWallElevation.sln -c R2026
 ```
 
-Все восемь версий, оба варианта, с каталогом выдачи и SHA-256:
+Все восемь версий в штатных bin каждого проекта, без PDB:
 
 ```powershell
 powershell -NoProfile -File scripts/build-all.ps1
@@ -21,19 +21,20 @@ powershell -NoProfile -File scripts/build-all.ps1
 Результат:
 
 ```text
-bin/
-  R2019/
-    CreateWallElevation/CreateWallElevation.dll
-    CreateWallElevationSpectrum/CreateWallElevation.dll
+CreateWallElevation/bin/
+  R2019/CreateWallElevation.dll
   ...
-  R2026/
-    CreateWallElevation/CreateWallElevation.dll
-    CreateWallElevationSpectrum/CreateWallElevation.dll
+  R2026/CreateWallElevation.dll
+CreateWallElevationSpectrum/bin/
+  R2019/CreateWallElevation.dll
+  ...
+  R2026/CreateWallElevation.dll
+artifacts/build/
   build-manifest.json
   build-R2019.log ... build-R2026.log
 ```
 
-Две DLL с одинаковым именем относятся к разным вариантам ribbon-host; выбирать соответствующую папку. DLL Revit API в поставку не включаются. Файлы DLL в корне репозитория являются прежней поставкой: актуальный результат находится в bin. Восемь конфигураций .sln соответствуют поддерживаемому диапазону; сохранившиеся экспериментальные параметры R2027 не являются проверенным выпуском.
+Две DLL с одинаковым именем относятся к разным вариантам ribbon-host; выбирать bin соответствующего проекта. Общий bin в корне решения не создаётся. DLL Revit API в поставку не включаются. Корневая DLL не перезаписывается скриптом. Восемь конфигураций .sln соответствуют поддерживаемому диапазону; сохранившиеся экспериментальные параметры R2027 не являются проверенным выпуском. Журналы и контрольные суммы находятся отдельно в artifacts/build.
 
 ## Расчёт и ограничения
 
@@ -71,5 +72,5 @@ dotnet run --project tests/CreateWallElevation.Tests
 - CreateWallElevation/ — обычный вариант, общие настройки и код окна, ресурс оформления.
 - CreateWallElevationSpectrum/ — вариант Spectrum со своей точкой входа, телеметрией и оформлением; общий код подключён через Compile Link.
 - tests/ — регрессионные проверки без Revit.
-- scripts/build-all.ps1 — сборка и формирование каталога выдачи.
+- scripts/build-all.ps1 — сборка в штатные bin проектов; диагностика отдельно в artifacts/build.
 - AUDIT-2026-09-07.md — исторический аудит до исправлений.

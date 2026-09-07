@@ -8,38 +8,47 @@
     <!-- Определение версии Revit и TargetFramework -->
     <PropertyGroup Condition="'$(Configuration)' == 'R2019'">
         <RevitVersion>2019</RevitVersion>
+        <RevitApiPackageVersion>2019.0.1</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2020'">
         <RevitVersion>2020</RevitVersion>
+        <RevitApiPackageVersion>2020.0.1</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2021'">
         <RevitVersion>2021</RevitVersion>
+        <RevitApiPackageVersion>2021.1.9</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2022'">
         <RevitVersion>2022</RevitVersion>
+        <RevitApiPackageVersion>2022.1.0</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2023'">
         <RevitVersion>2023</RevitVersion>
+        <RevitApiPackageVersion>2023.0.0</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2024'">
         <RevitVersion>2024</RevitVersion>
+        <RevitApiPackageVersion>2024.2.0</RevitApiPackageVersion>
         <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2025'">
         <RevitVersion>2025</RevitVersion>
+        <RevitApiPackageVersion>2025.0.0</RevitApiPackageVersion>
         <TargetFramework>net8.0-windows</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2026'">
         <RevitVersion>2026</RevitVersion>
+        <RevitApiPackageVersion>2026.0.0</RevitApiPackageVersion>
         <TargetFramework>net8.0-windows</TargetFramework>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'R2027'">
         <RevitVersion>2027</RevitVersion>
+        <RevitApiPackageVersion>2027.0.0</RevitApiPackageVersion>
         <TargetFramework>net8.0-windows</TargetFramework>
     </PropertyGroup>
 
@@ -68,7 +77,7 @@
         <PackageReference
                 Condition="'$(Configuration)' == 'R$(RevitVersion)'"
                 Include="Revit_All_Main_Versions_API_x64"
-                Version="$(RevitVersion).*"
+                Version="$(RevitApiPackageVersion)"
                 IncludeAssets="build; compile"/>
     </ItemGroup>
 

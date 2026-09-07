@@ -42,7 +42,7 @@ namespace CreateWallElevation
             Doc = doc ?? throw new ArgumentNullException(nameof(doc));
             _viewSheetList = viewSheetList ?? new List<ViewSheet>();
 
-            CreateWallElevationSettingsItem = new CreateWallElevationSettings().GetSettings();
+            CreateWallElevationSettingsItem = CreateWallElevationSettings.GetSettings();
 
             InitializeComponent();
 
@@ -150,9 +150,7 @@ namespace CreateWallElevation
 
         private void btn_Ok_Click(object sender, RoutedEventArgs e)
         {
-            SaveSettings();
-            DialogResult = true;
-            Close();
+            TryAccept();
         }
 
         private void btn_Cancel_Click(object sender, RoutedEventArgs e)
@@ -168,9 +166,7 @@ namespace CreateWallElevation
 
             if (e.Key == Key.Enter || e.Key == Key.Space)
             {
-                SaveSettings();
-                DialogResult = true;
-                Close();
+                TryAccept();
             }
             else if (e.Key == Key.Escape)
             {
@@ -189,6 +185,7 @@ namespace CreateWallElevation
         {
             if (!_uiReady) return;
             RefreshViewFamilyTypes();
+            RefreshTemplateList();
         }
 
         private void checkBox_UseTemplate_Checked(object sender, RoutedEventArgs e)
@@ -278,109 +275,69 @@ namespace CreateWallElevation
             return rb != null ? rb.Name : fallbackName;
         }
 
-        // ---------------- settings ----------------
-        private void SaveSettings()
+        private void TryAccept()
         {
-            CreateWallElevationSettingsItem = new CreateWallElevationSettings();
+            try
+            {
+                CaptureSettings();
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show(this, ex.Message, "Развёртки стен", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try { CreateWallElevationSettingsItem.SaveSettings(); }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                MessageBox.Show(this, "Параметры будут использованы в этом запуске, но сохранить их не удалось: " + ex.Message,
+                    "Развёртки стен", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            DialogResult = true;
+            Close();
+        }
 
-            // ViewFamilyType
-            SelectedViewFamilyType = comboBox_SelectTypeSectionFacade != null
-                ? comboBox_SelectTypeSectionFacade.SelectedItem as ViewFamilyType
-                : null;
-
-            CreateWallElevationSettingsItem.SelectedViewFamilyTypeName =
-                SelectedViewFamilyType != null ? SelectedViewFamilyType.Name : null;
-
-            // Радио
+        private void CaptureSettings()
+        {
             SelectedBuildByName = GetCheckedRadioName(groupBox_BuildBy, "rbt_ByRoom");
-            CreateWallElevationSettingsItem.SelectedBuildByName = SelectedBuildByName;
-
             SelectedUseToBuildName = GetCheckedRadioName(groupBox_UseToBuild, "rbt_Section");
-            CreateWallElevationSettingsItem.SelectedUseToBuildName = SelectedUseToBuildName;
+            SelectedViewFamilyType = comboBox_SelectTypeSectionFacade.SelectedItem as ViewFamilyType;
+            if (SelectedViewFamilyType == null)
+                throw new ArgumentException("Выберите существующий тип разреза или фасада.");
+            if (SelectedUseToBuildName != "rbt_Section" && (!(Doc.ActiveView is ViewPlan) || Doc.ActiveView.IsTemplate))
+                throw new ArgumentException("Для построения фасадов откройте план этажа.");
 
-            // ---------- локальные хелперы (старая версия, без CultureInfo в usings) ----------
-            double TryParseMmOrZero(string text)
+            Indent = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_Indent.Text, "Отступ от грани", false));
+            IndentUp = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_IndentUp.Text, "Отступ сверху", false));
+            IndentDown = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_IndentDown.Text, "Отступ снизу", false));
+            ProjectionDepth = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_ProjectionDepth.Text, "Глубина проекции", true));
+            MinSegmentLength = SelectedBuildByName == "rbt_ByRoom"
+                ? RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_MinSegmentLength.Text, "Мин. длина сегмента", true))
+                : RevitUnits.FromMillimeters(1000);
+            CurveNumberOfSegments = InputValues.Segments(textBox_CurveNumberOfSegments.Text);
+            if (ProjectionDepth <= Indent)
+                throw new ArgumentException("Глубина проекции должна быть больше отступа от грани, чтобы стена попадала в вид.");
+
+            UseTemplate = checkBox_UseTemplate.IsChecked == true;
+            ViewSectionTemplate = UseTemplate ? comboBox_UseTemplate.SelectedItem as ViewSection : null;
+            if (UseTemplate && ViewSectionTemplate == null)
+                throw new ArgumentException("Выберите шаблон для выбранного типа вида или отключите использование шаблона.");
+            SelectedViewSheet = comboBox_PlaceOnSheet.SelectedItem as ViewSheet;
+            CreateWallElevationSettingsItem = new CreateWallElevationSettings
             {
-                text = (text ?? "").Trim();
-
-                double v;
-                // 1) текущая культура
-                if (double.TryParse(text, out v))
-                    return v;
-
-                // 2) fallback: нормализуем разделитель
-                var normalized = text.Replace(',', '.');
-                if (double.TryParse(normalized, System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out v))
-                    return v;
-
-                return 0.0;
-            }
-
-            string NormOrDefault(string text, string def)
-            {
-                var t = (text ?? "").Trim();
-                return string.IsNullOrWhiteSpace(t) ? def : t;
-            }
-            // ------------------------------------------------------------------------------
-
-            // Парсинг мм для расчётов
-            var indentMm = TryParseMmOrZero(textBox_Indent != null ? textBox_Indent.Text : null);
-            var indentUpMm = TryParseMmOrZero(textBox_IndentUp != null ? textBox_IndentUp.Text : null);
-            var indentDownMm = TryParseMmOrZero(textBox_IndentDown != null ? textBox_IndentDown.Text : null);
-            var projMm = TryParseMmOrZero(textBox_ProjectionDepth != null ? textBox_ProjectionDepth.Text : null);
-            var minSegMm = TryParseMmOrZero(textBox_MinSegmentLength != null ? textBox_MinSegmentLength.Text : null);
-
-#if R2019 || R2020 || R2021
-            Indent = UnitUtils.ConvertToInternalUnits(indentMm, DisplayUnitType.DUT_MILLIMETERS);
-            IndentUp = UnitUtils.ConvertToInternalUnits(indentUpMm, DisplayUnitType.DUT_MILLIMETERS);
-            IndentDown = UnitUtils.ConvertToInternalUnits(indentDownMm, DisplayUnitType.DUT_MILLIMETERS);
-            ProjectionDepth = UnitUtils.ConvertToInternalUnits(projMm, DisplayUnitType.DUT_MILLIMETERS);
-            MinSegmentLength = UnitUtils.ConvertToInternalUnits(minSegMm, DisplayUnitType.DUT_MILLIMETERS);
-#else
-            Indent = UnitUtils.ConvertToInternalUnits(indentMm, UnitTypeId.Millimeters);
-            IndentUp = UnitUtils.ConvertToInternalUnits(indentUpMm, UnitTypeId.Millimeters);
-            IndentDown = UnitUtils.ConvertToInternalUnits(indentDownMm, UnitTypeId.Millimeters);
-            ProjectionDepth = UnitUtils.ConvertToInternalUnits(projMm, UnitTypeId.Millimeters);
-            MinSegmentLength = UnitUtils.ConvertToInternalUnits(minSegMm, UnitTypeId.Millimeters);
-#endif
-
-            // Сохраняем строки (пусто -> дефолт)
-            CreateWallElevationSettingsItem.Indent = NormOrDefault(textBox_Indent != null ? textBox_Indent.Text : null, "0");
-            CreateWallElevationSettingsItem.IndentUp = NormOrDefault(textBox_IndentUp != null ? textBox_IndentUp.Text : null, "0");
-            CreateWallElevationSettingsItem.IndentDown = NormOrDefault(textBox_IndentDown != null ? textBox_IndentDown.Text : null, "0");
-            CreateWallElevationSettingsItem.ProjectionDepth = NormOrDefault(textBox_ProjectionDepth != null ? textBox_ProjectionDepth.Text : null, "0");
-            CreateWallElevationSettingsItem.MinSegmentLength = NormOrDefault(textBox_MinSegmentLength != null ? textBox_MinSegmentLength.Text : null, "1000");
-
-            // Template
-            UseTemplate = (checkBox_UseTemplate != null && checkBox_UseTemplate.IsChecked == true);
-            CreateWallElevationSettingsItem.UseTemplate = UseTemplate;
-
-            if (UseTemplate && comboBox_UseTemplate != null)
-            {
-                ViewSectionTemplate = comboBox_UseTemplate.SelectedItem as ViewSection;
-                CreateWallElevationSettingsItem.ViewSectionTemplateName = ViewSectionTemplate != null ? ViewSectionTemplate.Name : null;
-            }
-            else
-            {
-                // не таскаем старое имя шаблона, если галка снята
-                CreateWallElevationSettingsItem.ViewSectionTemplateName = null;
-            }
-
-            // Curve segments (int + строка с дефолтом)
-            int.TryParse((textBox_CurveNumberOfSegments != null ? textBox_CurveNumberOfSegments.Text : null),
-                System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out CurveNumberOfSegments);
-
-            CreateWallElevationSettingsItem.CurveNumberOfSegments =
-                NormOrDefault(textBox_CurveNumberOfSegments != null ? textBox_CurveNumberOfSegments.Text : null, "5");
-
-            // Sheet
-            SelectedViewSheet = comboBox_PlaceOnSheet != null ? comboBox_PlaceOnSheet.SelectedItem as ViewSheet : null;
-            CreateWallElevationSettingsItem.SelectedViewSheetNumber = SelectedViewSheet != null ? SelectedViewSheet.SheetNumber : null;
-            CreateWallElevationSettingsItem.SelectedViewSheetName = SelectedViewSheet != null ? SelectedViewSheet.Name : null;
-
-            // Persist
-            CreateWallElevationSettingsItem.SaveSettings();
+                SelectedBuildByName = SelectedBuildByName,
+                SelectedUseToBuildName = SelectedUseToBuildName,
+                SelectedViewFamilyTypeName = SelectedViewFamilyType.Name,
+                Indent = textBox_Indent.Text.Trim(),
+                IndentUp = textBox_IndentUp.Text.Trim(),
+                IndentDown = textBox_IndentDown.Text.Trim(),
+                ProjectionDepth = textBox_ProjectionDepth.Text.Trim(),
+                MinSegmentLength = textBox_MinSegmentLength.Text.Trim(),
+                CurveNumberOfSegments = CurveNumberOfSegments.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                UseTemplate = UseTemplate,
+                ViewSectionTemplateName = ViewSectionTemplate?.Name,
+                SelectedViewSheetNumber = SelectedViewSheet?.SheetNumber,
+                SelectedViewSheetName = SelectedViewSheet?.Name
+            };
         }
     }
 }

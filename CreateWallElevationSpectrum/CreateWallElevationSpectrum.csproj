@@ -16,5 +16,10 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Resource Include="Resources\citrus.ico" />
+		<Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+		<Compile Remove="BoundarySimplifier.cs;CreateWallElevationSettings.cs;CreateWallElevationWPF.xaml.cs" />
+		<Compile Include="..\CreateWallElevation\BoundarySimplifier.cs" Link="BoundarySimplifier.cs" />
+		<Compile Include="..\CreateWallElevation\CreateWallElevationSettings.cs" Link="CreateWallElevationSettings.cs" />
+		<Compile Include="..\CreateWallElevation\CreateWallElevationWPF.xaml.cs" Link="CreateWallElevationWPF.xaml.cs" />
 	</ItemGroup>
 </Project>

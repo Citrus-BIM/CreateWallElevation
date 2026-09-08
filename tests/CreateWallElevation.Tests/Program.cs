@@ -17,6 +17,66 @@ void Reject(Action run)
     throw new Exception("Invalid input was accepted");
 }
 
+ViewBatchTests.Register(Test);
+
+Point2 AtDegrees(double degrees) => new Point2(Math.Cos(degrees * Math.PI / 180), Math.Sin(degrees * Math.PI / 180));
+Point2 Rotate(Point2 direction, double radians) => new Point2(
+    direction.X * Math.Cos(radians) - direction.Y * Math.Sin(radians),
+    direction.X * Math.Sin(radians) + direction.Y * Math.Cos(radians));
+foreach (double initial in new[] { 0.0, 17.0, 180.0 })
+foreach (double requested in new[] { -180.0, -179.0, -135.0, -1.0, 0.0, 90.0, 135.0, 179.0, 180.0, 181.0, 210.0, 359.0 })
+    Test($"Elevation rotation avoids the native large-angle flip: initial={initial}, requested={requested}", () =>
+    {
+        Point2 current = AtDegrees(initial), target = AtDegrees(initial + requested);
+        var turns = new List<double>();
+        ElevationOrientation.Align(() => current, target, angle =>
+        {
+            turns.Add(angle);
+            // Simulate Autodesk REVIT-134773: some large marker turns gain another 180 degrees on regeneration.
+            double nativeAngle = Math.Abs(angle) >= 135 * Math.PI / 180 ? angle + Math.PI : angle;
+            current = Rotate(current, nativeAngle);
+        });
+        Equal(1, current.Dot(target));
+        Require(turns.All(a => Math.Abs(a) <= Math.PI / 6 + 1e-9), "A large rotation reached the native API");
+        Require(turns.Sum(a => Math.Abs(a)) <= Math.PI + 1e-9, "Rotation did not use the shortest route");
+    });
+Test("An aligned elevation is left in place", () =>
+{
+    int rotations = 0;
+    ElevationOrientation.Align(() => AtDegrees(37), AtDegrees(37), angle => rotations++);
+    Equal(0, rotations);
+});
+Test("An elevation which refuses to rotate fails with a bounded attempt count", () =>
+{
+    int rotations = 0;
+    try
+    {
+        ElevationOrientation.Align(() => AtDegrees(0), AtDegrees(90), angle => rotations++);
+    }
+    catch (InvalidOperationException)
+    {
+        Require(rotations > 0 && rotations <= 12, "Rotation attempts are not bounded");
+        return;
+    }
+    throw new Exception("An unaligned elevation was accepted");
+});
+Test("Only a stuck elevation is skipped while other directions finish", () =>
+{
+    var batch = ViewBatch.Create(new[] { 90.0, 180.0, 270.0 }, (degrees, number) =>
+    {
+        Point2 current = AtDegrees(0), target = AtDegrees(degrees);
+        ElevationOrientation.Align(() => current, target, angle =>
+        {
+            if (number != 2) current = Rotate(current, angle);
+        });
+        Equal(1, current.Dot(target));
+        return number;
+    }, error => error is InvalidOperationException);
+    Require(batch.Views.SequenceEqual(new[] { 1, 3 }), "A failed rotation discarded or renumbered other elevations");
+    Require(batch.Failures.Count == 1 && batch.Failures[0].Number == 2 && batch.Failures[0].Reason.Contains("180"),
+        "Missing failed boundary number or residual rotation angle");
+});
+
 foreach (var direction in new[] { new Point2(1, 0), new Point2(-1, 0), new Point2(0, 1), new Point2(0, -1) })
     Test($"Facade observes its wall from {direction.X},{direction.Y}", () =>
     {

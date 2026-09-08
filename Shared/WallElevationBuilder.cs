@@ -14,7 +14,7 @@ namespace CreateWallElevation
         private readonly CreateWallElevationWPF options;
         private readonly bool sections;
         private readonly List<string> notes = new List<string>();
-        private int created, completed, failed, unplaced;
+        private int created, completed, failed, skippedViews, unplaced;
 
         private sealed class FaceSegment
         {
@@ -62,14 +62,51 @@ namespace CreateWallElevation
                             var failures = new ItemFailures();
                             transaction.SetFailureHandlingOptions(transaction.GetFailureHandlingOptions()
                                 .SetFailuresPreprocessor(failures).SetClearAfterRollback(true).SetForcedModalHandling(true));
-                            var views = new List<ViewSection>();
                             var placementNotes = new List<string>();
                             int itemUnplaced = 0;
-                            foreach (FaceSegment segment in segments)
+                            var batch = ViewBatch.Create(segments, (segment, number) =>
                             {
-                                ViewSection view = CreateView(segment);
-                                view.Name = item.NamePrefix + "_" + (views.Count + 1) + "_" + view.Id;
-                                views.Add(view);
+                                using (var viewTransaction = new SubTransaction(doc))
+                                {
+                                    if (viewTransaction.Start() != TransactionStatus.Started)
+                                        throw new ApplicationException("Не удалось начать транзакцию вида. Пакет остановлен.");
+                                    try
+                                    {
+                                        ViewSection view = CreateView(segment);
+                                        view.Name = item.NamePrefix + "_" + number + "_" + view.Id;
+                                        if (viewTransaction.Commit() != TransactionStatus.Committed)
+                                            throw new ApplicationException("Не удалось завершить транзакцию вида. Пакет остановлен.");
+                                        return view;
+                                    }
+                                    catch (Exception ex) when (IsItemError(ex))
+                                    {
+                                        // Only continue after this view AND its marker have been rolled back.
+                                        try
+                                        {
+                                            TransactionStatus viewStatus = viewTransaction.GetStatus();
+                                            if (viewStatus == TransactionStatus.Started) viewStatus = viewTransaction.RollBack();
+                                            if (viewStatus != TransactionStatus.RolledBack)
+                                                throw new ApplicationException("Транзакция ошибочного вида не отменена.");
+                                        }
+                                        catch (Exception rollbackError) when (IsItemError(rollbackError))
+                                        {
+                                            throw new ApplicationException("Не удалось отменить ошибочный вид. Пакет остановлен.", rollbackError);
+                                        }
+                                        throw;
+                                    }
+                                }
+                            }, IsItemError);
+                            var views = batch.Views;
+                            skippedViews += batch.Failures.Count;
+                            foreach (ViewBatchFailure failure in batch.Failures)
+                                notes.Add(item.Label + ", вид " + failure.Number + ": " + failure.Reason);
+                            if (views.Count == 0)
+                            {
+                                if (transaction.RollBack() != TransactionStatus.RolledBack)
+                                    throw new ApplicationException("Не удалось отменить пустую транзакцию объекта. Пакет остановлен.");
+                                failed++;
+                                notes.Add(item.Label + ": ни один вид не создан; изменения объекта отменены.");
+                                continue;
                             }
                             if (options.SelectedViewSheet != null)
                             {
@@ -109,7 +146,8 @@ namespace CreateWallElevation
             var summary = new TaskDialog("Развёртки стен")
             {
                 MainInstruction = "Создано видов: " + created,
-                MainContent = "Обработано объектов: " + completed + ". Пропущено или с ошибками: " + failed + "." +
+                MainContent = "Объектов с созданными видами: " + completed + ". Без результата: " + failed + "." +
+                    (skippedViews > 0 ? "\nПропущено видов из-за ошибок: " + skippedViews + "." : "") +
                     (unplaced > 0 ? "\nБез размещения на листе: " + unplaced + ". Виды сохранены в диспетчере проекта." : ""),
                 ExpandedContent = string.Join(Environment.NewLine, notes)
             };
@@ -302,12 +340,14 @@ namespace CreateWallElevation
                 ElevationMarker marker = ElevationMarker.CreateElevationMarker(doc, options.SelectedViewFamilyType.Id, observer, 100);
                 view = marker.CreateElevation(doc, doc.ActiveView.Id, 0);
                 doc.Regenerate();
-                double angle = view.ViewDirection.AngleOnPlaneTo(direction, XYZ.BasisZ);
-                if (Math.Abs(angle) > 1e-9)
-                    ElementTransformUtils.RotateElement(doc, marker.Id, Line.CreateBound(observer, observer + XYZ.BasisZ), angle);
-                doc.Regenerate();
+                using (var axis = Line.CreateBound(observer, observer + XYZ.BasisZ))
+                    ElevationOrientation.Align(() => ToPoint(view.ViewDirection), ToPoint(direction), angle =>
+                    {
+                        ElementTransformUtils.RotateElement(doc, marker.Id, axis, angle);
+                        doc.Regenerate();
+                    });
                 if (view.ViewDirection.Normalize().DotProduct(direction) < 0.999999)
-                    throw new InvalidOperationException("Не удалось направить фасад к стене.");
+                    throw new InvalidOperationException("После поворота фасад не совпадает с направлением стены в пространстве.");
             }
 
             // The checkbox is authoritative even when the view family type has a default template.

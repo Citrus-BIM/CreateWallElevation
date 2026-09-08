@@ -14,6 +14,14 @@ namespace CreateWallElevation
     {
         private readonly Document Doc;
         private readonly List<ViewSheet> _viewSheetList;
+        private List<SheetChoice> _sheetChoices;
+
+        private sealed class SheetChoice
+        {
+            public ViewSheet Sheet { get; }
+            public string DisplayName => Sheet == null ? "Без размещения на листе" : Sheet.SheetNumber + " — " + Sheet.Name;
+            public SheetChoice(ViewSheet sheet) { Sheet = sheet; }
+        }
 
         private List<ViewFamilyType> ViewFamilyTypeList = new List<ViewFamilyType>();
         private List<ViewSection> ViewSectionTemplateList = new List<ViewSection>();
@@ -59,7 +67,12 @@ namespace CreateWallElevation
 
             // Лист
             if (comboBox_PlaceOnSheet != null)
-                comboBox_PlaceOnSheet.ItemsSource = _viewSheetList;
+            {
+                _sheetChoices = new List<SheetChoice> { new SheetChoice(null) };
+                _sheetChoices.AddRange(_viewSheetList.Select(sheet => new SheetChoice(sheet)));
+                comboBox_PlaceOnSheet.ItemsSource = _sheetChoices;
+                comboBox_PlaceOnSheet.SelectedIndex = 0;
+            }
 
             // Радио-кнопки из настроек
             if (CreateWallElevationSettingsItem != null)
@@ -120,7 +133,7 @@ namespace CreateWallElevation
                         savedSheet = _viewSheetList.FirstOrDefault(vs =>
                             vs.Name == CreateWallElevationSettingsItem.SelectedViewSheetName);
                     }
-                    comboBox_PlaceOnSheet.SelectedItem = savedSheet ?? comboBox_PlaceOnSheet.Items[0];
+                    comboBox_PlaceOnSheet.SelectedItem = _sheetChoices.First(choice => choice.Sheet == savedSheet);
                 }
 
                 // Шаблон
@@ -129,10 +142,12 @@ namespace CreateWallElevation
                     checkBox_UseTemplate.IsChecked = CreateWallElevationSettingsItem.UseTemplate;
                     RefreshTemplateList();
 
-                    if (checkBox_UseTemplate.IsChecked == true && comboBox_UseTemplate != null && ViewSectionTemplateList.Count != 0)
+                    if (comboBox_UseTemplate != null && ViewSectionTemplateList.Count != 0)
                     {
                         var savedTpl = ViewSectionTemplateList.FirstOrDefault(vs => vs.Name == CreateWallElevationSettingsItem.ViewSectionTemplateName);
-                        comboBox_UseTemplate.SelectedItem = savedTpl ?? comboBox_UseTemplate.Items[0];
+                        comboBox_UseTemplate.SelectedItem = savedTpl ??
+                            (string.IsNullOrWhiteSpace(CreateWallElevationSettingsItem.ViewSectionTemplateName)
+                                ? comboBox_UseTemplate.Items[0] : null);
                     }
                 }
             }
@@ -242,27 +257,19 @@ namespace CreateWallElevation
         {
             if (checkBox_UseTemplate == null || comboBox_UseTemplate == null) return;
 
-            if (checkBox_UseTemplate.IsChecked == true)
-            {
-                comboBox_UseTemplate.IsEnabled = true;
-
-                ViewSectionTemplateList = new FilteredElementCollector(Doc)
-                    .OfClass(typeof(ViewSection))
-                    .Cast<ViewSection>()
-                    .Where(vs => vs.IsTemplate)
-                    .OrderBy(vs => vs.Name, new AlphanumComparatorFastString())
-                    .ToList();
-
-                comboBox_UseTemplate.ItemsSource = ViewSectionTemplateList;
-                comboBox_UseTemplate.DisplayMemberPath = "Name";
-
-                if (comboBox_UseTemplate.Items.Count > 0 && comboBox_UseTemplate.SelectedItem == null)
-                    comboBox_UseTemplate.SelectedItem = comboBox_UseTemplate.Items[0];
-            }
-            else
-            {
-                comboBox_UseTemplate.IsEnabled = false;
-            }
+            string selectedName = (comboBox_UseTemplate.SelectedItem as ViewSection)?.Name ??
+                CreateWallElevationSettingsItem?.ViewSectionTemplateName;
+            ViewSectionTemplateList = new FilteredElementCollector(Doc)
+                .OfClass(typeof(ViewSection))
+                .Cast<ViewSection>()
+                .Where(vs => vs.IsTemplate)
+                .OrderBy(vs => vs.Name, new AlphanumComparatorFastString())
+                .ToList();
+            comboBox_UseTemplate.ItemsSource = ViewSectionTemplateList;
+            comboBox_UseTemplate.DisplayMemberPath = "Name";
+            comboBox_UseTemplate.SelectedItem = ViewSectionTemplateList.FirstOrDefault(vs => vs.Name == selectedName) ??
+                (string.IsNullOrWhiteSpace(selectedName) ? ViewSectionTemplateList.FirstOrDefault() : null);
+            comboBox_UseTemplate.IsEnabled = checkBox_UseTemplate.IsChecked == true;
         }
 
         private static string GetCheckedRadioName(GroupBox groupBox, string fallbackName)
@@ -324,7 +331,7 @@ namespace CreateWallElevation
             ViewSectionTemplate = UseTemplate ? comboBox_UseTemplate.SelectedItem as ViewSection : null;
             if (UseTemplate && ViewSectionTemplate == null)
                 throw new ArgumentException("Выберите шаблон для выбранного типа вида или отключите использование шаблона.");
-            SelectedViewSheet = comboBox_PlaceOnSheet.SelectedItem as ViewSheet;
+            SelectedViewSheet = (comboBox_PlaceOnSheet.SelectedItem as SheetChoice)?.Sheet;
             CreateWallElevationSettingsItem = new CreateWallElevationSettings
             {
                 SelectedBuildByName = SelectedBuildByName,
@@ -339,7 +346,7 @@ namespace CreateWallElevation
                 MinSegmentLength = textBox_MinSegmentLength.Text.Trim(),
                 CurveNumberOfSegments = CurveNumberOfSegments.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 UseTemplate = UseTemplate,
-                ViewSectionTemplateName = ViewSectionTemplate?.Name,
+                ViewSectionTemplateName = (comboBox_UseTemplate.SelectedItem as ViewSection)?.Name,
                 SelectedViewSheetNumber = SelectedViewSheet?.SheetNumber,
                 SelectedViewSheetName = SelectedViewSheet?.Name
             };

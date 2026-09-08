@@ -8,6 +8,8 @@
   <ItemGroup>
     <Compile Include="../../Shared/Geometry2D.cs" Link="Geometry2D.cs" />
     <Compile Include="../../Shared/SettingsStore.cs" Link="SettingsStore.cs" />
+    <Compile Include="../../Shared/SettingsLocation.cs" Link="SettingsLocation.cs" />
+    <Compile Include="../../CreateWallElevation/SettingsLocationProvider.cs" Link="SettingsLocationProvider.cs" />
     <Compile Include="../../Shared/InputValues.cs" Link="InputValues.cs" />
     <Compile Include="../../Shared/ViewNaming.cs" Link="ViewNaming.cs" />
     <Compile Include="../../Shared/ElevationOrientation.cs" Link="ElevationOrientation.cs" />

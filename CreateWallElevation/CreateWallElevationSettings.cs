@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Reflection;
 
 namespace CreateWallElevation
 {
@@ -23,15 +21,9 @@ namespace CreateWallElevation
         public string SelectedViewSheetNumber { get; set; }
         public string MinSegmentLength { get; set; } = "1000";
 
-        private const string FileName = "CreateWallElevationSettings.xml";
-        private static string UserPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Citrus BIM", "CreateWallElevation", FileName);
-
         public static CreateWallElevationSettings GetSettings()
         {
-            var result = SettingsStore.Load(UserPath,
-                Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), FileName),
-                () => new CreateWallElevationSettings());
+            var result = SettingsLocationProvider.GetLocation().Load(() => new CreateWallElevationSettings());
             result.Upgrade();
             return result;
         }
@@ -54,6 +46,6 @@ namespace CreateWallElevation
             }
         }
 
-        public void SaveSettings() => SettingsStore.Save(UserPath, this);
+        public void SaveSettings() => SettingsLocationProvider.GetLocation().Save(this);
     }
 }

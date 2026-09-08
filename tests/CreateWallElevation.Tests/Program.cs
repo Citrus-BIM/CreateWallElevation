@@ -18,6 +18,7 @@ void Reject(Action run)
 }
 
 ViewBatchTests.Register(Test);
+SettingsLocationTests.Register(Test);
 
 Point2 AtDegrees(double degrees) => new Point2(Math.Cos(degrees * Math.PI / 180), Math.Sin(degrees * Math.PI / 180));
 Point2 Rotate(Point2 direction, double radians) => new Point2(

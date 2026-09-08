@@ -9,5 +9,7 @@
     <Compile Include="../../Shared/Geometry2D.cs" Link="Geometry2D.cs" />
     <Compile Include="../../Shared/SettingsStore.cs" Link="SettingsStore.cs" />
     <Compile Include="../../Shared/InputValues.cs" Link="InputValues.cs" />
+    <Compile Include="../../Shared/ViewNaming.cs" Link="ViewNaming.cs" />
+    <Compile Include="../../CreateWallElevation/CreateWallElevationSettings.cs" Link="CreateWallElevationSettings.cs" />
   </ItemGroup>
 </Project>

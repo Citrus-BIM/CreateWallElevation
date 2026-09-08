@@ -129,8 +129,10 @@ namespace CreateWallElevation
                 throw new ArgumentException("Выбранный тип вида не соответствует режиму построения.");
             if (!sections && (!(doc.ActiveView is ViewPlan) || doc.ActiveView.IsTemplate))
                 throw new ArgumentException("Для фасадов необходимо открыть план этажа.");
-            foreach (double value in new[] { options.Indent, options.IndentUp, options.IndentDown, options.ProjectionDepth, options.MinSegmentLength })
+            foreach (double value in new[] { options.Indent, options.IndentUp, options.ProjectionDepth, options.MinSegmentLength })
                 if (!Geometry2D.IsFinite(value) || value < 0) throw new ArgumentException("Недопустимые отступы или глубина проекции.");
+            if (!Geometry2D.IsFinite(options.IndentDown)) throw new ArgumentException("Недопустимое смещение снизу.");
+            ViewNaming.NormalizePrefix(options.ViewNamePrefix);
             if (options.ProjectionDepth <= options.Indent || options.ProjectionDepth <= doc.Application.ShortCurveTolerance)
                 throw new ArgumentException("Глубина проекции должна быть больше отступа от грани.");
             Geometry2D.SegmentParameters(options.CurveNumberOfSegments);
@@ -151,7 +153,7 @@ namespace CreateWallElevation
                     items.Add(new WorkItem
                     {
                         Label = "Помещение " + current.Number + " (" + current.Id + ")",
-                        NamePrefix = (sections ? "Р_П" : "Ф_П") + SafeName(current.Number),
+                        NamePrefix = ViewNaming.RoomPrefix(options.ViewNamePrefix, sections, current.Number),
                         Prepare = () => RoomSegments(current)
                     });
                 }
@@ -164,7 +166,7 @@ namespace CreateWallElevation
                 items.Add(new WorkItem
                 {
                     Label = "Стена " + wall.Id,
-                    NamePrefix = sections ? "Р_Ст" : "Ф_Ст",
+                    NamePrefix = ViewNaming.WallPrefix(options.ViewNamePrefix, sections),
                     Prepare = () => WallSegments(wall, point)
                 });
             }
@@ -372,7 +374,6 @@ namespace CreateWallElevation
             "Освободите этот параметр в шаблоне или выберите другой шаблон. Исходный шаблон не изменён.");
 
         private static Point2 ToPoint(XYZ point) => new Point2(point.X, point.Y);
-        private static string SafeName(string value) => new string((value ?? "").Select(c => "\\:{}[]|;<>?`~".Contains(c) ? '_' : c).ToArray());
 
         private sealed class ItemFailures : IFailuresPreprocessor
         {

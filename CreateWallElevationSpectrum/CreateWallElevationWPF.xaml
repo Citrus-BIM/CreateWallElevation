@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:CreateWallElevation"
         mc:Ignorable="d"
         Title="Развертки стен"
-        Height="540" Width="680"
-        MinHeight="540" MinWidth="680"
-        MaxHeight="540" 
+        Height="620" Width="680"
+        MinHeight="620" MinWidth="680"
+        MaxHeight="620"
         WindowStyle="SingleBorderWindow"
         ResizeMode="NoResize"
         Icon="Resources/citrus.ico"
@@ -133,6 +133,8 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <!-- распорка -->
                         </Grid.RowDefinitions>
@@ -163,6 +165,20 @@
                                   Height="32"
                                   VerticalContentAlignment="Center"
                                   IsEnabled="False"/>
+
+                        <Label Grid.Row="4"
+                               Content="Префикс имени вида:"
+                               Target="{Binding ElementName=textBox_ViewNamePrefix}"
+                               VerticalContentAlignment="Center"
+                               Margin="4,8,4,6"/>
+
+                        <TextBox x:Name="textBox_ViewNamePrefix"
+                                 Grid.Row="5"
+                                 Height="32"
+                                 Padding="10,0,10,0"
+                                 VerticalContentAlignment="Center"
+                                 AutomationProperties.Name="Префикс имени вида"
+                                 ToolTip="АР → АР_101_1_12345; пустое поле — автоматический префикс"/>
                     </Grid>
                 </GroupBox>
             </Grid>
@@ -229,16 +245,17 @@
                            VerticalContentAlignment="Center"
                            Margin="6,0,0,6"/>
 
-                    <!-- Отступ снизу -->
+                    <!-- Знаковое смещение нижней границы -->
                     <Label x:Name="label_IndentDown"
                            Grid.Row="2" Grid.Column="0"
-                           Content="Отступ снизу:"
+                           Content="Смещение снизу:"
                            VerticalContentAlignment="Center"
                            Margin="4,0,8,6"/>
                     <TextBox x:Name="textBox_IndentDown"
                              Grid.Row="2" Grid.Column="1"
                              Width="70" Height="32"
                              Text="0"
+                             ToolTip="−100 мм опускает нижнюю границу вида на 100 мм, чтобы показать пол. +100 мм поднимает её на 100 мм."
                              Padding="10,0,10,0"
                              HorizontalContentAlignment="Center"
                              VerticalContentAlignment="Center"

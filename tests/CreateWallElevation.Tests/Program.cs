@@ -112,10 +112,23 @@ Test("Closed-loop first and last parts merge before filtering", () =>
     var parts = Enumerable.Range(0, points.Length - 1).Select(i => new Segment2(points[i], points[i + 1])).ToList();
     Equal(4, Geometry2D.SimplifyLines(parts, 1000, 1, true).Count);
 });
-Test("Bottom offset expands view downwards", () =>
+Test("Negative bottom offset exposes the floor below the original base", () =>
+{
+    var range = Geometry2D.VerticalRange(10, 13, -0.1, 0.2);
+    Equal(9.9, range.Min); Equal(13.2, range.Max);
+});
+Test("Positive bottom offset raises the lower crop boundary", () =>
 {
     var range = Geometry2D.VerticalRange(10, 13, 0.1, 0.2);
-    Equal(9.9, range.Min); Equal(13.2, range.Max);
+    Equal(10.1, range.Min); Equal(13.2, range.Max);
+});
+Test("Bottom offset cannot collapse or invert the resulting crop", () =>
+{
+    Reject(() => Geometry2D.VerticalRange(10, 13, 3.2, 0.2));
+    Reject(() => Geometry2D.VerticalRange(10, 13, 4, 0.2));
+    Reject(() => Geometry2D.VerticalRange(10, 13, double.NaN, 0));
+    Reject(() => Geometry2D.VerticalRange(10, 13, double.NegativeInfinity, 0));
+    Reject(() => Geometry2D.VerticalRange(0, double.MaxValue, 0, double.MaxValue));
 });
 Test("Reject negative/nonfinite offsets and invalid segment counts", () =>
 {
@@ -149,6 +162,87 @@ Test("Numeric fields reject missing, nonfinite and negative values", () =>
     Reject(() => InputValues.Segments("0"));
     Reject(() => InputValues.Segments("1.5"));
 });
+Test("Signed bottom input accepts negative decimals, explicit plus and zero", () =>
+{
+    Equal(-100.5, InputValues.SignedMillimeters(" -100,5 ", "Низ"));
+    Equal(-100.5, InputValues.SignedMillimeters("−100.5", "Низ"));
+    Equal(100, InputValues.SignedMillimeters("+100", "Низ"));
+    Equal(0, InputValues.SignedMillimeters("0", "Низ"));
+    var range = Geometry2D.VerticalRange(1000, 4000, InputValues.SignedMillimeters("-100", "Низ"), 0);
+    Equal(900, range.Min); Equal(4000, range.Max);
+});
+Test("Signed bottom input still rejects missing and nonfinite numbers", () =>
+{
+    foreach (var text in new[] { "", "NaN", "Infinity", "-Infinity", "1e999", "--100", "abc" })
+        Reject(() => InputValues.SignedMillimeters(text, "Низ"));
+    Reject(() => InputValues.Millimeters("-100", "Отступ от грани", false));
+    Reject(() => InputValues.Millimeters("-100", "Верх", false));
+});
+foreach (bool sections in new[] { true, false })
+{
+    Test($"Empty prefix preserves existing names, sections={sections}", () =>
+    {
+        Require(ViewNaming.RoomPrefix("  ", sections, "101") == (sections ? "Р_П101" : "Ф_П101"), "Room default changed");
+        Require(ViewNaming.WallPrefix(null, sections) == (sections ? "Р_Ст" : "Ф_Ст"), "Wall default changed");
+    });
+    Test($"Custom prefix replaces automatic portion, sections={sections}", () =>
+    {
+        Require(ViewNaming.RoomPrefix(" АР ", sections, "101") == "АР_101", "Room prefix not applied");
+        Require(ViewNaming.RoomPrefix("АР", sections, "102") == "АР_102", "Room number was lost");
+        Require(ViewNaming.WallPrefix(" АР ", sections) == "АР", "Wall prefix not applied");
+    });
+}
+Test("View prefixes reject invalid characters before view creation", () =>
+{
+    foreach (char c in "\\:{}[]|;<>?`~\n\t")
+        Reject(() => ViewNaming.NormalizePrefix("АР" + c + "01"));
+    Require(ViewNaming.NormalizePrefix(" АР - Отделка_01 ") == "АР - Отделка_01", "Valid prefix rejected");
+    Require(ViewNaming.RoomPrefix("АР", true, "1:2") == "АР_1_2", "Unsafe room number not sanitized");
+});
+Test("New settings use zero bottom offset by default", () =>
+{
+    var settings = new CreateWallElevationSettings();
+    settings.Upgrade();
+    Require(settings.IndentDown == "0", "Default lower offset is not zero");
+    Require(settings.ViewNamePrefix == "", "Default naming changed");
+});
+Test("Old XML lower offset migrates once while preserving the crop", () =>
+{
+    string path = Path.Combine(Path.GetTempPath(), "wall-elevation-test-" + Guid.NewGuid() + ".xml");
+    const string oldXml = "<CreateWallElevationSettings><IndentDown>100,5</IndentDown><ProjectionDepth>0</ProjectionDepth></CreateWallElevationSettings>";
+    try
+    {
+        File.WriteAllText(path, oldXml);
+        var settings = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
+        settings.Upgrade();
+        Require(settings.UsesSignedBottomOffset, "Migration not marked");
+        Equal(-100.5, InputValues.SignedMillimeters(settings.IndentDown, "Низ"));
+        Require(settings.ProjectionDepth == "500", "Old depth migration lost");
+        Require(File.ReadAllText(path) == oldXml, "Reading modified the old file");
+        settings.Upgrade();
+        Equal(-100.5, InputValues.SignedMillimeters(settings.IndentDown, "Низ"));
+        SettingsStore.Save(path, settings);
+        var loaded = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
+        loaded.Upgrade();
+        Equal(-100.5, InputValues.SignedMillimeters(loaded.IndentDown, "Низ"));
+    }
+    finally { File.Delete(path); }
+});
+foreach (string bottom in new[] { "-100,5", "+100", "0" })
+    Test($"New XML preserves signed offset {bottom} and custom prefix", () =>
+    {
+        string path = Path.Combine(Path.GetTempPath(), "wall-elevation-test-" + Guid.NewGuid() + ".xml");
+        try
+        {
+            SettingsStore.Save(path, new CreateWallElevationSettings
+            { UsesSignedBottomOffset = true, IndentDown = bottom, ViewNamePrefix = "АР - Отделка" });
+            var settings = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
+            settings.Upgrade();
+            Require(settings.IndentDown == bottom, "Signed value changed on reload");
+            Require(settings.ViewNamePrefix == "АР - Отделка", "Custom prefix lost on reload");
+        }
+        finally { File.Delete(path); }
+    });
 Test("Settings recover from corrupt XML without changing the old file", () =>
 {
     string path = Path.Combine(Path.GetTempPath(), "wall-elevation-test-" + Guid.NewGuid() + ".xml");

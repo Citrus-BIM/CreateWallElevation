@@ -26,6 +26,7 @@ namespace CreateWallElevation
         public double Indent;
         public double IndentUp;
         public double IndentDown;
+        public string ViewNamePrefix;
         public double ProjectionDepth;
         public int CurveNumberOfSegments;
         public ViewSheet SelectedViewSheet;
@@ -94,6 +95,7 @@ namespace CreateWallElevation
                 if (textBox_Indent != null) textBox_Indent.Text = CreateWallElevationSettingsItem.Indent;
                 if (textBox_IndentUp != null) textBox_IndentUp.Text = CreateWallElevationSettingsItem.IndentUp;
                 if (textBox_IndentDown != null) textBox_IndentDown.Text = CreateWallElevationSettingsItem.IndentDown;
+                if (textBox_ViewNamePrefix != null) textBox_ViewNamePrefix.Text = CreateWallElevationSettingsItem.ViewNamePrefix ?? "";
                 if (textBox_ProjectionDepth != null) textBox_ProjectionDepth.Text = CreateWallElevationSettingsItem.ProjectionDepth;
                 if (textBox_CurveNumberOfSegments != null) textBox_CurveNumberOfSegments.Text = CreateWallElevationSettingsItem.CurveNumberOfSegments;
 
@@ -308,7 +310,8 @@ namespace CreateWallElevation
 
             Indent = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_Indent.Text, "Отступ от грани", false));
             IndentUp = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_IndentUp.Text, "Отступ сверху", false));
-            IndentDown = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_IndentDown.Text, "Отступ снизу", false));
+            IndentDown = RevitUnits.FromMillimeters(InputValues.SignedMillimeters(textBox_IndentDown.Text, "Смещение снизу"));
+            ViewNamePrefix = ViewNaming.NormalizePrefix(textBox_ViewNamePrefix.Text);
             ProjectionDepth = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_ProjectionDepth.Text, "Глубина проекции", true));
             MinSegmentLength = SelectedBuildByName == "rbt_ByRoom"
                 ? RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_MinSegmentLength.Text, "Мин. длина сегмента", true))
@@ -330,6 +333,8 @@ namespace CreateWallElevation
                 Indent = textBox_Indent.Text.Trim(),
                 IndentUp = textBox_IndentUp.Text.Trim(),
                 IndentDown = textBox_IndentDown.Text.Trim(),
+                UsesSignedBottomOffset = true,
+                ViewNamePrefix = ViewNamePrefix,
                 ProjectionDepth = textBox_ProjectionDepth.Text.Trim(),
                 MinSegmentLength = textBox_MinSegmentLength.Text.Trim(),
                 CurveNumberOfSegments = CurveNumberOfSegments.ToString(System.Globalization.CultureInfo.InvariantCulture),

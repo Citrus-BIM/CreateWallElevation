@@ -255,7 +255,6 @@
         <Border Grid.Row="1" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="20,14">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock Text="Параметры запоминаются" Foreground="{DynamicResource SubtleTextBrush}" VerticalAlignment="Center"/>
                 <Button x:Name="btn_Cancel" Grid.Column="1" Content="Отмена" Width="100" Height="34" Margin="12,0,8,0" Padding="10,0"
                         IsCancel="True" TabIndex="15" Style="{StaticResource ButtonOutline}" Click="btn_Cancel_Click"/>
                 <Button x:Name="btn_Ok" Grid.Column="2" Content="Создать развёртки" Width="168" Height="34" Padding="12,0"

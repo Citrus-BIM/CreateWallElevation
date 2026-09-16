@@ -167,9 +167,10 @@ namespace CreateWallElevation
                 throw new ArgumentException("Выбранный тип вида не соответствует режиму построения.");
             if (!sections && (!(doc.ActiveView is ViewPlan) || doc.ActiveView.IsTemplate))
                 throw new ArgumentException("Для фасадов необходимо открыть план этажа.");
-            foreach (double value in new[] { options.Indent, options.IndentUp, options.ProjectionDepth, options.MinSegmentLength })
+            foreach (double value in new[] { options.Indent, options.ProjectionDepth, options.MinSegmentLength })
                 if (!Geometry2D.IsFinite(value) || value < 0) throw new ArgumentException("Недопустимые отступы или глубина проекции.");
-            if (!Geometry2D.IsFinite(options.IndentDown)) throw new ArgumentException("Недопустимое смещение снизу.");
+            if (!Geometry2D.IsFinite(options.IndentDown) || !Geometry2D.IsFinite(options.IndentUp))
+                throw new ArgumentException("Недопустимые смещения сверху или снизу.");
             ViewNaming.NormalizePrefix(options.ViewNamePrefix);
             if (options.ProjectionDepth <= options.Indent || options.ProjectionDepth <= doc.Application.ShortCurveTolerance)
                 throw new ArgumentException("Глубина проекции должна быть больше отступа от грани.");
@@ -295,6 +296,8 @@ namespace CreateWallElevation
             if (curve is Arc arc && arc.Length / arc.Radius / count > Math.PI / 2 + 1e-6)
                 throw new ArgumentException("Увеличьте число сегментов: один сегмент дуги не должен превышать 90°.");
             var vertical = Geometry2D.VerticalRange(bottom, top, options.IndentDown, options.IndentUp);
+            if (vertical.Max - vertical.Min <= doc.Application.ShortCurveTolerance)
+                throw new ArgumentException("После смещений высота развёртки слишком мала. Увеличьте расстояние между верхней и нижней границами.");
             var prepared = Geometry2D.PrepareSegments(t => ToPoint(curve.Evaluate(t, true)), t =>
             {
                 XYZ direction = curve.ComputeDerivatives(t, true).BasisX;

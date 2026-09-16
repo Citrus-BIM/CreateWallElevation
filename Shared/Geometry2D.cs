@@ -162,12 +162,11 @@ namespace CreateWallElevation
 
         public static (double Min, double Max) VerticalRange(double bottom, double top, double down, double up)
         {
-            if (!IsFinite(bottom) || !IsFinite(top) || !IsFinite(down) || !IsFinite(up) ||
-                up < 0 || top <= bottom)
+            if (!IsFinite(bottom) || !IsFinite(top) || !IsFinite(down) || !IsFinite(up) || top <= bottom)
                 throw new ArgumentException("Некорректные вертикальные границы или отступы.");
             double min = bottom + down, max = top + up;
             if (!IsFinite(min) || !IsFinite(max) || min >= max)
-                throw new ArgumentException("Смещение снизу должно оставлять нижнюю границу вида ниже верхней. Уменьшите смещение.");
+                throw new ArgumentException("Смещения сверху и снизу должны оставлять верхнюю границу вида выше нижней. Проверьте значения.");
             return (min, max);
         }
 

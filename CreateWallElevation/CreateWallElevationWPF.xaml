@@ -164,7 +164,9 @@
                         <Label x:Name="label_ProjectionDepthMM" Grid.Column="6" Content="мм" Margin="10,0,0,0"/>
 
                         <Label x:Name="label_IndentUp" Grid.Row="2" Content="Сверху:" Target="{Binding ElementName=textBox_IndentUp}"/>
-                        <TextBox x:Name="textBox_IndentUp" Grid.Row="2" Grid.Column="1" Text="0" TabIndex="9" Style="{StaticResource FormInput}" AutomationProperties.Name="Отступ сверху, мм"/>
+                        <TextBox x:Name="textBox_IndentUp" Grid.Row="2" Grid.Column="1" Text="0" TabIndex="9"
+                                 Style="{StaticResource FormInput}" AutomationProperties.Name="Смещение сверху, мм"
+                                 ToolTip="−100 мм опускает верхнюю границу вида на 100 мм. +100 мм поднимает её на 100 мм."/>
                         <Label x:Name="label_IndentUpMM" Grid.Row="2" Grid.Column="2" Content="мм" Margin="10,0,0,0"/>
                         <Label x:Name="label_IndentDown" Grid.Row="2" Grid.Column="4" Content="Снизу:" Target="{Binding ElementName=textBox_IndentDown}"/>
                         <TextBox x:Name="textBox_IndentDown" Grid.Row="2" Grid.Column="5" Text="0" TabIndex="10"

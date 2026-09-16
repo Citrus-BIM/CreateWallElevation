@@ -183,6 +183,28 @@ Test("Positive bottom offset raises the lower crop boundary", () =>
     var range = Geometry2D.VerticalRange(10, 13, 0.1, 0.2);
     Equal(10.1, range.Min); Equal(13.2, range.Max);
 });
+foreach (var sample in new[] { (Text: "-100,5", Top: 3899.5), (Text: "−100.5", Top: 3899.5),
+    (Text: "+100", Top: 4100.0), (Text: "0", Top: 4000.0) })
+    Test($"Signed top offset {sample.Text} moves only the upper crop boundary", () =>
+    {
+        var range = Geometry2D.VerticalRange(1000, 4000, -50,
+            InputValues.SignedMillimeters(sample.Text, "Смещение сверху"));
+        Equal(950, range.Min); Equal(sample.Top, range.Max);
+    });
+Test("Signed top and bottom offsets can crop both ends without changing the source bounds", () =>
+{
+    var range = Geometry2D.VerticalRange(1000, 4000, 200, -300);
+    Equal(1200, range.Min); Equal(3700, range.Max);
+});
+Test("Top offset cannot collapse or invert the resulting crop", () =>
+{
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 0, -3000));
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 0, -3100));
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 200, -2800));
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 0, double.NaN));
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 0, double.PositiveInfinity));
+    Reject(() => Geometry2D.VerticalRange(1000, 4000, 0, double.NegativeInfinity));
+});
 Test("Bottom offset cannot collapse or invert the resulting crop", () =>
 {
     Reject(() => Geometry2D.VerticalRange(10, 13, 3.2, 0.2));
@@ -237,7 +259,6 @@ Test("Signed bottom input still rejects missing and nonfinite numbers", () =>
     foreach (var text in new[] { "", "NaN", "Infinity", "-Infinity", "1e999", "--100", "abc" })
         Reject(() => InputValues.SignedMillimeters(text, "Низ"));
     Reject(() => InputValues.Millimeters("-100", "Отступ от грани", false));
-    Reject(() => InputValues.Millimeters("-100", "Верх", false));
 });
 foreach (bool sections in new[] { true, false })
 {
@@ -260,17 +281,18 @@ Test("View prefixes reject invalid characters before view creation", () =>
     Require(ViewNaming.NormalizePrefix(" АР - Отделка_01 ") == "АР - Отделка_01", "Valid prefix rejected");
     Require(ViewNaming.RoomPrefix("АР", true, "1:2") == "АР_1_2", "Unsafe room number not sanitized");
 });
-Test("New settings use zero bottom offset by default", () =>
+Test("New settings use zero top and bottom offsets by default", () =>
 {
     var settings = new CreateWallElevationSettings();
     settings.Upgrade();
+    Require(settings.IndentUp == "0", "Default upper offset is not zero");
     Require(settings.IndentDown == "0", "Default lower offset is not zero");
     Require(settings.ViewNamePrefix == "", "Default naming changed");
 });
-Test("Old XML lower offset migrates once while preserving the crop", () =>
+Test("Old XML lower offset migrates once while preserving the crop and positive top offset", () =>
 {
     string path = Path.Combine(Path.GetTempPath(), "wall-elevation-test-" + Guid.NewGuid() + ".xml");
-    const string oldXml = "<CreateWallElevationSettings><IndentDown>100,5</IndentDown><ProjectionDepth>0</ProjectionDepth></CreateWallElevationSettings>";
+    const string oldXml = "<CreateWallElevationSettings><IndentDown>100,5</IndentDown><IndentUp>100,5</IndentUp><ProjectionDepth>0</ProjectionDepth></CreateWallElevationSettings>";
     try
     {
         File.WriteAllText(path, oldXml);
@@ -286,6 +308,7 @@ Test("Old XML lower offset migrates once while preserving the crop", () =>
         var loaded = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
         loaded.Upgrade();
         Equal(-100.5, InputValues.SignedMillimeters(loaded.IndentDown, "Низ"));
+        Equal(100.5, InputValues.SignedMillimeters(loaded.IndentUp, "Верх"));
     }
     finally { File.Delete(path); }
 });
@@ -301,6 +324,22 @@ foreach (string bottom in new[] { "-100,5", "+100", "0" })
             settings.Upgrade();
             Require(settings.IndentDown == bottom, "Signed value changed on reload");
             Require(settings.ViewNamePrefix == "АР - Отделка", "Custom prefix lost on reload");
+        }
+        finally { File.Delete(path); }
+    });
+foreach (string top in new[] { "-100,5", "+100", "0" })
+    Test($"XML preserves signed top offset {top} across upgrade and reload", () =>
+    {
+        string path = Path.Combine(Path.GetTempPath(), "wall-elevation-test-" + Guid.NewGuid() + ".xml");
+        try
+        {
+            SettingsStore.Save(path, new CreateWallElevationSettings { IndentUp = top });
+            var settings = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
+            settings.Upgrade();
+            SettingsStore.Save(path, settings);
+            var loaded = SettingsStore.Load(path, null, () => new CreateWallElevationSettings());
+            loaded.Upgrade();
+            Require(loaded.IndentUp == top, "Upper offset changed on upgrade or reload");
         }
         finally { File.Delete(path); }
     });

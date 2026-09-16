@@ -316,7 +316,7 @@ namespace CreateWallElevation
                 throw new ArgumentException("Для построения фасадов откройте план этажа.");
 
             Indent = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_Indent.Text, "Отступ от грани", false));
-            IndentUp = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_IndentUp.Text, "Отступ сверху", false));
+            IndentUp = RevitUnits.FromMillimeters(InputValues.SignedMillimeters(textBox_IndentUp.Text, "Смещение сверху"));
             IndentDown = RevitUnits.FromMillimeters(InputValues.SignedMillimeters(textBox_IndentDown.Text, "Смещение снизу"));
             ViewNamePrefix = ViewNaming.NormalizePrefix(textBox_ViewNamePrefix.Text);
             ProjectionDepth = RevitUnits.FromMillimeters(InputValues.Millimeters(textBox_ProjectionDepth.Text, "Глубина проекции", true));
